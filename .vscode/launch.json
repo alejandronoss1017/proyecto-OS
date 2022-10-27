@@ -1,0 +1,24 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+    "name": "Depurador gestor",
+    "type": "lldb",
+    "request": "launch",
+    "preLaunchTask": "cmake build",
+    "program": "${workspaceRoot}/gestor",
+    "args": ["80", "ArchivoEntrada.txt", "A", "5", "pipeGeneral"]
+},
+{
+    "name": "Depurador cliente",
+    "type": "lldb",
+    "request": "launch",
+    "preLaunchTask": "cmake build",
+    "program": "${workspaceRoot}/client",
+    "args": ["pipeGeneral", "pipeEspecifico"]
+}
+    ]
+}
