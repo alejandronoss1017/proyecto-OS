@@ -1,1 +1,5 @@
 /.vscode/
+*.o
+gestor
+client
+pipe*
