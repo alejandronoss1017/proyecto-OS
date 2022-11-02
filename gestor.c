@@ -7,6 +7,7 @@
 #include "sgestor.h"
 #include <unistd.h>
 #include <fcntl.h>
+#include "colors.h"
 
 // ./gestor
 // Parametros:
@@ -24,7 +25,6 @@ int main(int argc, char **argv)
     int contClientes = 0;
 
     mode_t fifo_mode = S_IRUSR | S_IWUSR;
-    fprintf(stderr, "%s \n", argv[5]);
     // Creamos la estructura gestor
     struct SGestor gestor;
 
@@ -42,7 +42,6 @@ int main(int argc, char **argv)
 
     // 5. Inicializamos el pipe general
 
-    printf("%s \n", gestor.pipeNom);
     unlink(gestor.pipeNom);
     if (mkfifo(gestor.pipeNom, fifo_mode) == -1)
     {
@@ -57,7 +56,7 @@ int main(int argc, char **argv)
         exit(0);
     }
 
-    fprintf(stderr, "Pipe abierto");
+    fprintf(stderr, "%s Abierto \n", gestor.pipeNom);
     // Lectura de pipe
     while (true)
     {
@@ -65,12 +64,16 @@ int main(int argc, char **argv)
         int leido;
         if ((leido = read(fdGeneral, &temporal, sizeof(struct SMensaje))) > 0)
         {
-            fprintf(stderr, "Solicitud entrante \n");
-            fprintf(stderr, "%d\n", temporal.tipo);
-            fprintf(stderr, "%s\n", temporal.conexion.pipeNom);
-
-            if (temporal.tipo == CONEXION)
+            // fprintf(stderr, "Solicitud entrante \n");
+            // fprintf(stderr, "%d\n", temporal.tipo);
+            // fprintf(stderr, "%s\n", temporal.conexion.pipeNom);
+            switch (temporal.tipo)
             {
+            case CONEXION:
+                printf("===========================================================\n");
+                fprintf(stderr, MAGENTA_T "Solicitud de conexion entrante del usuario ID:" RESET_COLOR AMARILLO_T " %d \n" RESET_COLOR, temporal.idEmisor);
+                // fprintf(stderr, "%d\n", temporal.tipo);
+                fprintf(stderr, MAGENTA_T "Nombre del pipe: " RESET_COLOR AMARILLO_T "%s\n" RESET_COLOR, temporal.conexion.pipeNom);
                 bool encontrado = false;
                 for (int i = 0; i < contClientes; i++)
                 {
@@ -79,7 +82,7 @@ int main(int argc, char **argv)
                         encontrado = true;
                     }
                 }
-                fprintf(stderr, "%d", encontrado);
+                fprintf(stderr, MAGENTA_T "Fue encontrado?:" RESET_COLOR AMARILLO_T " %d \n" RESET_COLOR, encontrado);
                 gestor.clientes[contClientes].fd = open(temporal.conexion.pipeNom, O_WRONLY);
                 if (gestor.clientes[contClientes].fd < 0)
                 {
@@ -94,13 +97,25 @@ int main(int argc, char **argv)
                     write(gestor.clientes[contClientes].fd, &temporal, sizeof(temporal));
                     contClientes++;
                 }
-                else{
+                else
+                {
                     struct SMensaje aux;
                     aux.conexion.exito = 0;
                     write(gestor.clientes[contClientes].fd, &aux, sizeof(aux));
                 }
+                break;
+            case SEGUIMIENTO:
+                /* code */
+                break;
+            case TWEET:
+                printf("========================================================= \n");
+                printf(AZUL_T "Tweet entrante del usuario ID: " RESET_COLOR AMARILLO_T "%d\n" RESET_COLOR, temporal.idEmisor);
+                printf(VERDE_T "%s" RESET_COLOR, temporal.tweet.mensaje);
+                break;
+            default:
+
+                break;
             }
-    
         }
     }
 }

@@ -16,6 +16,7 @@
 #include <fcntl.h>
 #include <unistd.h>
 #include <string.h>
+#include "colors.h"
 
 int main(int argc, char **argv)
 {
@@ -43,6 +44,8 @@ int main(int argc, char **argv)
     char opcion;
     do
     {
+        // System(clear) no funciona en el IDE pero en la consola perfecto
+        system("clear");
         printf("MENU SELECCION DE PETICION \n");
         printf("1. Conexion \n");
         printf("2. Seguimiento \n");
@@ -50,9 +53,13 @@ int main(int argc, char **argv)
         printf("0. Salir \n");
 
         scanf(" %c", &opcion);
+        fgetc(stdin);
 
         switch (opcion)
         {
+        /*
+            El caso de CONEXION realiza...
+        */
         case '1':
             cliente.mensaje.tipo = CONEXION;
             cliente.mensaje.conexion.status = 1;
@@ -61,11 +68,11 @@ int main(int argc, char **argv)
             mkfifo(cliente.pipeNom, S_IRUSR | S_IWUSR);
             // Primero el write antes del open
 
-            fprintf(stderr, "%d\n", cliente.mensaje.tipo);
-            fprintf(stderr, "%s\n", cliente.pipeNom);
+            // fprintf(stderr, "%d\n", cliente.mensaje.tipo);
+            // fprintf(stderr, "%s\n", cliente.pipeNom);
 
             write(fdGeneral, &cliente.mensaje, sizeof(cliente.mensaje));
-            printf("Enviado solicitud\n");
+            printf("Solicitud enviada\n");
 
             if ((fdEspecifico = open(cliente.pipeNom, O_RDONLY)) == -1)
             {
@@ -75,7 +82,7 @@ int main(int argc, char **argv)
             struct SMensaje temporal;
 
             int leido;
-            printf("%d", fdEspecifico);
+            // printf("%d", fdEspecifico);
             if ((leido = read(fdEspecifico, &temporal, sizeof(struct SMensaje))) < 0)
             {
                 perror("Error");
@@ -84,23 +91,44 @@ int main(int argc, char **argv)
             else
             {
                 fprintf(stderr, "Respuesta del servidor\n");
+                sleep(3);
             }
 
             if (temporal.conexion.exito == 1)
             {
                 printf("Fue exitosa la conexion\n");
+                sleep(3);
             }
             else
             {
                 printf("Conexion fallida\n");
+                sleep(3);
             }
+            sleep(3);
 
             break;
         case '2':
             cliente.mensaje.tipo = 2;
             break;
         case '3':
-            cliente.mensaje.tipo = 3;
+            /*
+                El caso TWEET va a crear el pipe del cliente para comunicarse con el
+                gestor, este escribira un mensaje por pantalla que posteriormente
+                sera enviado al gestor.
+            */
+            cliente.mensaje.tipo = TWEET;
+            system("clear");
+
+            unlink(cliente.pipeNom);
+            mkfifo(cliente.pipeNom, S_IRUSR | S_IWUSR);
+
+            printf("Escriba su tweet acontinuacion:\n");
+            fgets(cliente.mensaje.tweet.mensaje, 200, stdin);
+
+            write(fdGeneral, &cliente.mensaje, sizeof(cliente.mensaje));
+            printf("Tweet enviado\n");
+            sleep(3);
+
             break;
         case '0':
             terminar = true;
