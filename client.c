@@ -18,6 +18,11 @@
 #include <string.h>
 #include "colors.h"
 
+
+// Declaracion de la firma de las distintas funciones
+void realizarConexion(struct SCliente cliente, int fdGeneral, int fdEspecifico);
+void enviarTweet(struct SCliente cliente, int fdGeneral, int fdEspecifico);
+
 int main(int argc, char **argv)
 {
     /*
@@ -61,51 +66,7 @@ int main(int argc, char **argv)
             El caso de CONEXION realiza...
         */
         case '1':
-            cliente.mensaje.tipo = CONEXION;
-            cliente.mensaje.conexion.status = 1;
-            strcpy(cliente.mensaje.conexion.pipeNom, cliente.pipeNom);
-            unlink(cliente.pipeNom);
-            mkfifo(cliente.pipeNom, S_IRUSR | S_IWUSR);
-            // Primero el write antes del open
-
-            // fprintf(stderr, "%d\n", cliente.mensaje.tipo);
-            // fprintf(stderr, "%s\n", cliente.pipeNom);
-
-            write(fdGeneral, &cliente.mensaje, sizeof(cliente.mensaje));
-            printf("Solicitud enviada\n");
-
-            if ((fdEspecifico = open(cliente.pipeNom, O_RDONLY)) == -1)
-            {
-                perror("Error");
-                exit(1);
-            }
-            struct SMensaje temporal;
-
-            int leido;
-            // printf("%d", fdEspecifico);
-            if ((leido = read(fdEspecifico, &temporal, sizeof(struct SMensaje))) < 0)
-            {
-                perror("Error");
-                exit(1);
-            }
-            else
-            {
-                fprintf(stderr, "Respuesta del servidor\n");
-                sleep(3);
-            }
-
-            if (temporal.conexion.exito == 1)
-            {
-                printf("Fue exitosa la conexion\n");
-                sleep(3);
-            }
-            else
-            {
-                printf("Conexion fallida\n");
-                sleep(3);
-            }
-            sleep(3);
-
+            realizarConexion(cliente, fdGeneral, fdEspecifico);
             break;
         case '2':
             cliente.mensaje.tipo = 2;
@@ -116,18 +77,7 @@ int main(int argc, char **argv)
                 gestor, este escribira un mensaje por pantalla que posteriormente
                 sera enviado al gestor.
             */
-            cliente.mensaje.tipo = TWEET;
-            system("clear");
-
-            unlink(cliente.pipeNom);
-            mkfifo(cliente.pipeNom, S_IRUSR | S_IWUSR);
-
-            printf("Escriba su tweet acontinuacion:\n");
-            fgets(cliente.mensaje.tweet.mensaje, 200, stdin);
-
-            write(fdGeneral, &cliente.mensaje, sizeof(cliente.mensaje));
-            printf("Tweet enviado\n");
-            sleep(3);
+            enviarTweet(cliente, fdGeneral, fdEspecifico);
 
             break;
         case '0':
@@ -141,4 +91,68 @@ int main(int argc, char **argv)
     } while (terminar != true);
 
     return 0;
+}
+
+void realizarConexion(struct SCliente cliente, int fdGeneral, int fdEspecifico)
+{
+    cliente.mensaje.tipo = CONEXION;
+    cliente.mensaje.conexion.status = 1;
+    strcpy(cliente.mensaje.conexion.pipeNom, cliente.pipeNom);
+    unlink(cliente.pipeNom);
+    mkfifo(cliente.pipeNom, S_IRUSR | S_IWUSR);
+    // Primero el write antes del open
+
+    // fprintf(stderr, "%d\n", cliente.mensaje.tipo);
+    // fprintf(stderr, "%s\n", cliente.pipeNom);
+
+    write(fdGeneral, &cliente.mensaje, sizeof(cliente.mensaje));
+    printf("Solicitud enviada\n");
+
+    if ((fdEspecifico = open(cliente.pipeNom, O_RDONLY)) == -1)
+    {
+        perror("Error");
+        exit(1);
+    }
+    struct SMensaje temporal;
+
+    int leido;
+    // printf("%d", fdEspecifico);
+    if ((leido = read(fdEspecifico, &temporal, sizeof(struct SMensaje))) < 0)
+    {
+        perror("Error");
+        exit(1);
+    }
+    else
+    {
+        fprintf(stderr, "Respuesta del servidor\n");
+        sleep(3);
+    }
+
+    if (temporal.conexion.exito == 1)
+    {
+        printf("Fue exitosa la conexion\n");
+        sleep(3);
+    }
+    else
+    {
+        printf("Conexion fallida\n");
+        sleep(3);
+    }
+    sleep(3);
+}
+
+void enviarTweet(struct SCliente cliente, int fdGeneral, int fdEspecifico)
+{
+    cliente.mensaje.tipo = TWEET;
+    system("clear");
+
+    unlink(cliente.pipeNom);
+    mkfifo(cliente.pipeNom, S_IRUSR | S_IWUSR);
+
+    printf("Escriba su tweet acontinuacion:\n");
+    fgets(cliente.mensaje.tweet.mensaje, 200, stdin);
+
+    write(fdGeneral, &cliente.mensaje, sizeof(cliente.mensaje));
+    printf("Tweet enviado\n");
+    sleep(3);
 }

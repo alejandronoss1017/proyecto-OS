@@ -17,6 +17,6 @@ struct SMensaje
     struct Seguimiento seguimiento;
     struct SConexion conexion;
 
-}mensajes;
+} mensajes;
 
 #endif // SMENSAJE__H

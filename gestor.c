@@ -18,6 +18,7 @@
 // 5: nombre del pipe
 
 int **leerMatriz(char *fileName);
+void leerTweet(struct SMensaje temporal);
 
 int main(int argc, char **argv)
 {
@@ -48,6 +49,7 @@ int main(int argc, char **argv)
         perror("Gestor mkfifo");
         exit(1);
     }
+
     // para empezar a atender solicitudes se necesita abrir el pipe
     int fdGeneral = open(gestor.pipeNom, O_RDONLY);
     if (fdGeneral == -1)
@@ -56,7 +58,14 @@ int main(int argc, char **argv)
         exit(0);
     }
 
-    fprintf(stderr, "%s Abierto \n", gestor.pipeNom);
+    printf(AMARILLO_T "GESTOR INICIALIZADO\n" RESET_COLOR);
+    printf("===========================================================\n");
+    printf(CYAN_T "Cantidad maxima de usuarios: " RESET_COLOR AMARILLO_T "%d" RESET_COLOR "\n", gestor.numUsuarios);
+    printf(CYAN_T "Relaciones cargadas?: " RESET_COLOR AMARILLO_T "%d" RESET_COLOR "\n", (gestor.numUsuarios != NULL ? 1 : 0));
+    printf(CYAN_T "Modo del gestor: " RESET_COLOR AMARILLO_T "%c" RESET_COLOR "\n", gestor.modo);
+    printf(CYAN_T "Tiempo de impresion: " RESET_COLOR AMARILLO_T "%f" RESET_COLOR "\n", gestor.tiempo);
+    printf(CYAN_T "Nombre del pipe del gestor: " RESET_COLOR AMARILLO_T "%s" RESET_COLOR "\n", gestor.pipeNom);
+
     // Lectura de pipe
     while (true)
     {
@@ -69,6 +78,7 @@ int main(int argc, char **argv)
             // fprintf(stderr, "%s\n", temporal.conexion.pipeNom);
             switch (temporal.tipo)
             {
+
             case CONEXION:
                 printf("===========================================================\n");
                 fprintf(stderr, MAGENTA_T "Solicitud de conexion entrante del usuario ID:" RESET_COLOR AMARILLO_T " %d \n" RESET_COLOR, temporal.idEmisor);
@@ -108,9 +118,8 @@ int main(int argc, char **argv)
                 /* code */
                 break;
             case TWEET:
-                printf("========================================================= \n");
-                printf(AZUL_T "Tweet entrante del usuario ID: " RESET_COLOR AMARILLO_T "%d\n" RESET_COLOR, temporal.idEmisor);
-                printf(VERDE_T "%s" RESET_COLOR, temporal.tweet.mensaje);
+                leerTweet(temporal);
+                temporal.
                 break;
             default:
 
@@ -118,6 +127,13 @@ int main(int argc, char **argv)
             }
         }
     }
+}
+
+void leerTweet(struct SMensaje temporal)
+{
+    printf("========================================================= \n");
+    printf(AZUL_T "Tweet entrante del usuario ID: " RESET_COLOR AMARILLO_T "%d\n" RESET_COLOR, temporal.idEmisor);
+    printf(VERDE_T "%s" RESET_COLOR, temporal.tweet.mensaje);
 }
 
 int **leerMatriz(char *fileName)
