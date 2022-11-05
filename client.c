@@ -18,7 +18,6 @@
 #include <string.h>
 #include "colors.h"
 
-
 // Declaracion de la firma de las distintas funciones
 void realizarConexion(struct SCliente cliente, int fdGeneral, int fdEspecifico);
 void enviarTweet(struct SCliente cliente, int fdGeneral, int fdEspecifico);
@@ -42,6 +41,10 @@ int main(int argc, char **argv)
     }
 
     struct SCliente cliente;
+
+    // Inicializamos el ID y el idEmisor del cliente con el del proceso
+    cliente.idCliente = (int)getpid();
+    cliente.mensaje.idEmisor = cliente.idCliente;
 
     strcpy(cliente.pipeNom, argv[2]);
 

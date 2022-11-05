@@ -119,7 +119,6 @@ int main(int argc, char **argv)
                 break;
             case TWEET:
                 leerTweet(temporal);
-                temporal.
                 break;
             default:
 
