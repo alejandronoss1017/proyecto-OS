@@ -132,7 +132,8 @@ void leerTweet(struct SMensaje temporal)
 {
     printf("========================================================= \n");
     printf(AZUL_T "Tweet entrante del usuario ID: " RESET_COLOR AMARILLO_T "%d\n" RESET_COLOR, temporal.idEmisor);
-    printf(VERDE_T "%s" RESET_COLOR, temporal.tweet.mensaje);
+    printf(AZUL_T "Nombre del pipe : " RESET_COLOR AMARILLO_T "%s\n" RESET_COLOR, temporal.conexion.pipeNom);
+    printf(VERDE_T "%s\n" RESET_COLOR, temporal.tweet.mensaje);
 }
 
 int **leerMatriz(char *fileName)

@@ -84,6 +84,9 @@ int main(int argc, char **argv)
 
             break;
         case '0':
+            // Cierra y elimina el pipe
+            close(cliente.pipeNom);
+            unlink(cliente.pipeNom);
             terminar = true;
             break;
         default:
@@ -103,10 +106,8 @@ void realizarConexion(struct SCliente cliente, int fdGeneral, int fdEspecifico)
     strcpy(cliente.mensaje.conexion.pipeNom, cliente.pipeNom);
     unlink(cliente.pipeNom);
     mkfifo(cliente.pipeNom, S_IRUSR | S_IWUSR);
-    // Primero el write antes del open
 
-    // fprintf(stderr, "%d\n", cliente.mensaje.tipo);
-    // fprintf(stderr, "%s\n", cliente.pipeNom);
+    // Primero el write antes del open
 
     write(fdGeneral, &cliente.mensaje, sizeof(cliente.mensaje));
     printf("Solicitud enviada\n");
@@ -119,7 +120,7 @@ void realizarConexion(struct SCliente cliente, int fdGeneral, int fdEspecifico)
     struct SMensaje temporal;
 
     int leido;
-    // printf("%d", fdEspecifico);
+
     if ((leido = read(fdEspecifico, &temporal, sizeof(struct SMensaje))) < 0)
     {
         perror("Error");
@@ -146,7 +147,10 @@ void realizarConexion(struct SCliente cliente, int fdGeneral, int fdEspecifico)
 
 void enviarTweet(struct SCliente cliente, int fdGeneral, int fdEspecifico)
 {
+    // Envio del nombre del pipeEspecifico por el mensaje
+    // Sigue siendo necesario la opcion de CONEXION?
     cliente.mensaje.tipo = TWEET;
+    strcpy(cliente.mensaje.conexion.pipeNom, cliente.pipeNom);
     system("clear");
 
     unlink(cliente.pipeNom);
