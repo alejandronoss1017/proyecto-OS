@@ -220,9 +220,9 @@ int **leerMatriz(char *fileName)
     // Devolvemos al inicio el apuntador del fichero
     rewind(fp);
 
-    token = strtok(linea, " ");
     for (int i = 0; i < filas2; i++)
     {
+    token = strtok(linea, " ");
         fgets(linea, 79, fp);
         for (int j = 0; j < columnas2; j++)
         {
@@ -237,23 +237,6 @@ int **leerMatriz(char *fileName)
         printf("\n");
     }
 
-    printf("%s", token);
-    int filas = atoi(token);
-    token = strtok(NULL, " ");
-    int cols = atoi(token);
-    int **matriz = malloc(filas * sizeof(int *));
-    for (int i = 0; i < filas; i++)
-    {
-        matriz[i] = malloc(cols * sizeof(int));
-        fgets(linea, 79, fp);
-        token = strtok(linea, " ");
-        matriz[i][0] = atoi(token);
-        for (int j = 1; j < cols; j++)
-        {
-            token = strtok(NULL, " ");
-            matriz[i][j] = atoi(token);
-        }
-    }
     fclose(fp);
-    return matriz;
+    return m1;
 }
