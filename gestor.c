@@ -9,6 +9,7 @@
 #include <fcntl.h>
 #include "colors.h"
 #include <locale.h>
+#include "scliente.h"
 
 // ./gestor
 // Parámetros:
@@ -26,6 +27,14 @@ int main(int argc, char **argv)
     setlocale(LC_ALL, "");
     int contMensajes = 0;
     int contClientes = 0;
+
+    /*
+        Creación de un arreglo dinámico de clientes para almacenar toda la información
+        de los clientes que se han conectado al gestor.
+
+        Podemos modificar el tamaño de este arreglo con realloc.
+    */
+    struct SCliente *clientes = calloc(atoi(argv[1]), sizeof(struct SCliente));
 
     mode_t fifo_mode = S_IRUSR | S_IWUSR;
     // Creamos la estructura gestor
@@ -67,6 +76,17 @@ int main(int argc, char **argv)
     printf(CYAN_T "Modo del gestor: " RESET_COLOR AMARILLO_T "%c" RESET_COLOR "\n", gestor.modo);
     printf(CYAN_T "Tiempo de impresión: " RESET_COLOR AMARILLO_T "%f" RESET_COLOR "\n", gestor.tiempo);
     printf(CYAN_T "Nombre del pipe del gestor: " RESET_COLOR AMARILLO_T "%s" RESET_COLOR "\n", gestor.pipeNom);
+
+    if (gestor.numUsuarios != NULL)
+    {
+        for (int i = 0; i < 10; i++)
+        {
+            for (int j = 0; j < 6; j++)
+            {
+                printf("%d", gestor.relaciones[i][j]);
+            }
+        }
+    }
 
     // Lectura de pipe
     while (true)
@@ -117,7 +137,19 @@ int main(int argc, char **argv)
                 }
                 break;
             case SEGUIMIENTO:
-                /* code */
+                /*1. se recorre la matriz de seguimiento del cliente
+                2. Se busca la fila correspondiente al id del cliente, por ejemplo si el cliente que quiere seguir a otra persona tiene el id 1, se sigue al id 1
+                3. Se busca la columna correspondiente al usuario que desea seguir, dado por Idseguidor
+                4. Una vez ubicados dentro de la posición, se verifica el número
+                5. Si hay un 0, escribir un 1
+                6. Si hay un 1, decir que ya lo sigue
+                7. Mensaje de exito o fracaso
+                */
+                printf("===========================================================\n");
+                fprintf(stderr, MAGENTA_T "Solicitud de Seguimiento entrante del usuario ID:" RESET_COLOR AMARILLO_T " %d \n" RESET_COLOR, temporal.idEmisor);
+                fprintf(stderr, MAGENTA_T "Nombre del pipe: " RESET_COLOR AMARILLO_T "%s\n" RESET_COLOR, temporal.conexion.pipeNom);
+                bool seguido = false;
+
                 break;
             case TWEET:
                 leerTweet(temporal);
@@ -146,10 +178,66 @@ int **leerMatriz(char *fileName)
         perror("Error");
         exit(EXIT_FAILURE);
     }
+
+    int filas2 = 0;
+    int columnas2 = 0;
     char linea[80];
-    fgets(linea, 79, fp);
-    char *token = strtok(linea, " "); // 10 6
-    printf("%s", token);              //
+    char *token;
+
+    /*
+        Contamos las filas que hay en la matriz
+    */
+    while (fgets(linea, 79, fp))
+    {
+        filas2++;
+    }
+
+    /*
+        Contar columnas de la matriz
+        el 10 equivale a \n, por lo que el
+        archivo debe terminar con eso
+    */
+    int i = 0;
+    while (linea[i] != 10)
+    {
+        if (linea[i] == '0' || linea[i] == '1')
+        {
+            columnas2++;
+        }
+        i++;
+    }
+
+    /*
+        Creación de una matriz con apuntadores
+    */
+    int **m1 = (int **)calloc(filas2, sizeof(int *));
+
+    for (int i = 0; i < filas2; i++)
+    {
+        m1[i] = (int *)calloc(columnas2, sizeof(int));
+    }
+
+    // Devolvemos al inicio el apuntador del fichero
+    rewind(fp);
+
+    token = strtok(linea, " ");
+    for (int i = 0; i < filas2; i++)
+    {
+        fgets(linea, 79, fp);
+        for (int j = 0; j < columnas2; j++)
+        {
+            if (token != NULL)
+            {
+                m1[i][j] = atoi(token);
+                token = strtok(NULL, " ");
+            }
+
+            printf("%d ", m1[i][j]);
+        }
+        printf("\n");
+    }
+
+    printf("%s", token);
     int filas = atoi(token);
     token = strtok(NULL, " ");
     int cols = atoi(token);

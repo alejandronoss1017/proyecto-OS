@@ -33,6 +33,7 @@ int main(int argc, char **argv)
      */
     int fdGeneral;
     int fdEspecifico;
+    int idSeguir;
     fdGeneral = open(argv[1], O_WRONLY);
 
     printf("PIpe general abierto\n");
@@ -76,6 +77,7 @@ int main(int argc, char **argv)
             break;
         case '2':
             cliente.mensaje.tipo = 2;
+            
             break;
         case '3':
             /*
@@ -145,6 +147,22 @@ void realizarConexion(struct SCliente cliente, int fdGeneral, int fdEspecifico)
         printf("Conexion fallida\n");
         sleep(3);
     }
+    sleep(3);
+}
+
+void follow(struct SCliente cliente, int fdGeneral, int fdEspecifico, int idSeguir)
+{
+    cliente.mensaje.tipo=SEGUIMIENTO;
+    strcpy(cliente.mensaje.conexion.pipeNom, cliente.pipeNom);
+    system("clear");
+
+    unlink(cliente.pipeNom);
+    mkfifo(cliente.pipeNom, S_IRUSR | S_IWUSR);
+
+    printf("Escriba el identificador del usuario que desee seguir\n");
+            scanf(" %c", &idSeguir);
+    write(fdGeneral, &cliente.mensaje, sizeof(cliente.mensaje));
+    printf("Solcitud enviada\n");
     sleep(3);
 }
 
