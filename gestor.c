@@ -20,7 +20,15 @@
 // 5: nombre del pipe
 
 int **leerMatriz(char *fileName);
+void imprimirMatriz(int **matriz);
 void leerTweet(struct SMensaje temporal);
+
+/*
+    Variables globales
+*/
+
+int filas = 0;
+int columnas = 0;
 
 int main(int argc, char **argv)
 {
@@ -76,6 +84,8 @@ int main(int argc, char **argv)
     printf(CYAN_T "Modo del gestor: " RESET_COLOR AMARILLO_T "%c" RESET_COLOR "\n", gestor.modo);
     printf(CYAN_T "Tiempo de impresión: " RESET_COLOR AMARILLO_T "%f" RESET_COLOR "\n", gestor.tiempo);
     printf(CYAN_T "Nombre del pipe del gestor: " RESET_COLOR AMARILLO_T "%s" RESET_COLOR "\n", gestor.pipeNom);
+    printf("===========================================================\n");
+    imprimirMatriz(gestor.relaciones);
 
     if (gestor.numUsuarios != NULL)
     {
@@ -139,7 +149,7 @@ int main(int argc, char **argv)
             case SEGUIMIENTO:
                 /*1. se recorre la matriz de seguimiento del cliente
                 2. Se busca la fila correspondiente al id del cliente, por ejemplo si el cliente que quiere seguir a otra persona tiene el id 1, se sigue al id 1
-                3. Se busca la columna correspondiente al usuario que desea seguir, dado por Idseguidor
+                3. Se busca la columna correspondiente al usuario que desea seguir, dado por Id seguidor
                 4. Una vez ubicados dentro de la posición, se verifica el número
                 5. Si hay un 0, escribir un 1
                 6. Si hay un 1, decir que ya lo sigue
@@ -149,6 +159,23 @@ int main(int argc, char **argv)
                 fprintf(stderr, MAGENTA_T "Solicitud de Seguimiento entrante del usuario ID:" RESET_COLOR AMARILLO_T " %d \n" RESET_COLOR, temporal.idEmisor);
                 fprintf(stderr, MAGENTA_T "Nombre del pipe: " RESET_COLOR AMARILLO_T "%s\n" RESET_COLOR, temporal.conexion.pipeNom);
                 bool seguido = false;
+                gestor.clientes[contClientes].idCliente = temporal.idEmisor;
+                bool emisorExiste = false;
+
+                for (int i = 0; i < contClientes; i++)
+                {
+                    if (gestor.clientes[i].idCliente == temporal.idEmisor)
+                    {
+                        emisorExiste = true;
+                    }
+                }
+                for (int i = 0; i < filas; i++)
+                {
+                    // if (temporal.idEmisor == gestor.clientes[contClientes].mensaje.seguimiento[i])
+                    //     for (int i = 0; i < columnas; i++)
+                    //     {
+                    //     }
+                }
 
                 break;
             case TWEET:
@@ -179,8 +206,6 @@ int **leerMatriz(char *fileName)
         exit(EXIT_FAILURE);
     }
 
-    int filas2 = 0;
-    int columnas2 = 0;
     char linea[80];
     char *token;
 
@@ -189,7 +214,7 @@ int **leerMatriz(char *fileName)
     */
     while (fgets(linea, 79, fp))
     {
-        filas2++;
+        filas++;
     }
 
     /*
@@ -202,7 +227,7 @@ int **leerMatriz(char *fileName)
     {
         if (linea[i] == '0' || linea[i] == '1')
         {
-            columnas2++;
+            columnas++;
         }
         i++;
     }
@@ -210,33 +235,50 @@ int **leerMatriz(char *fileName)
     /*
         Creación de una matriz con apuntadores
     */
-    int **m1 = (int **)calloc(filas2, sizeof(int *));
+    int **m1 = (int **)calloc(filas, sizeof(int *));
 
-    for (int i = 0; i < filas2; i++)
+    for (int i = 0; i < filas; i++)
     {
-        m1[i] = (int *)calloc(columnas2, sizeof(int));
+        m1[i] = (int *)calloc(columnas, sizeof(int));
     }
 
     // Devolvemos al inicio el apuntador del fichero
     rewind(fp);
 
-    for (int i = 0; i < filas2; i++)
+    for (int i = 0; i < filas; i++)
     {
-    token = strtok(linea, " ");
+        token = strtok(linea, " ");
         fgets(linea, 79, fp);
-        for (int j = 0; j < columnas2; j++)
+        for (int j = 0; j < columnas; j++)
         {
             if (token != NULL)
             {
                 m1[i][j] = atoi(token);
                 token = strtok(NULL, " ");
             }
-
-            printf("%d ", m1[i][j]);
         }
         printf("\n");
     }
 
     fclose(fp);
     return m1;
+}
+
+void imprimirMatriz(int **matriz)
+{
+    for (int i = 0; i < filas; i++)
+    {
+        for (int j = 0; j < columnas; j++)
+        {
+            if (matriz[i][j] == 1)
+            {
+                printf(AMARILLO_T "%d " RESET_COLOR, matriz[i][j]);
+            }
+            else
+            {
+                printf(CYAN_T "%d " RESET_COLOR, matriz[i][j]);
+            }
+        }
+        printf("\n");
+    }
 }
