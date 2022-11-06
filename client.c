@@ -17,13 +17,16 @@
 #include <unistd.h>
 #include <string.h>
 #include "colors.h"
+#include <locale.h>
 
-// Declaracion de la firma de las distintas funciones
+// Declaración de la firma de las distintas funciones
 void realizarConexion(struct SCliente cliente, int fdGeneral, int fdEspecifico);
 void enviarTweet(struct SCliente cliente, int fdGeneral, int fdEspecifico);
 
 int main(int argc, char **argv)
 {
+    setlocale(LC_ALL, "");
+
     /*
      * 1. Nombre del pipe general creado por el gestor
      * 2. Nombre de otro pipe?
@@ -54,7 +57,7 @@ int main(int argc, char **argv)
     {
         // System(clear) no funciona en el IDE pero en la consola perfecto
         system("clear");
-        printf("MENU SELECCION DE PETICION \n");
+        printf("MENU SELECCIÓN DE PETICIÓN \n");
         printf("1. Conexion \n");
         printf("2. Seguimiento \n");
         printf("3. Tweet \n");
@@ -77,7 +80,7 @@ int main(int argc, char **argv)
         case '3':
             /*
                 El caso TWEET va a crear el pipe del cliente para comunicarse con el
-                gestor, este escribira un mensaje por pantalla que posteriormente
+                gestor, este escribirá un mensaje por pantalla que posteriormente
                 sera enviado al gestor.
             */
             enviarTweet(cliente, fdGeneral, fdEspecifico);
@@ -147,7 +150,7 @@ void realizarConexion(struct SCliente cliente, int fdGeneral, int fdEspecifico)
 
 void enviarTweet(struct SCliente cliente, int fdGeneral, int fdEspecifico)
 {
-    // Envio del nombre del pipeEspecifico por el mensaje
+    // Envió del nombre del pipeEspecifico por el mensaje
     // Sigue siendo necesario la opcion de CONEXION?
     cliente.mensaje.tipo = TWEET;
     strcpy(cliente.mensaje.conexion.pipeNom, cliente.pipeNom);
@@ -156,7 +159,7 @@ void enviarTweet(struct SCliente cliente, int fdGeneral, int fdEspecifico)
     unlink(cliente.pipeNom);
     mkfifo(cliente.pipeNom, S_IRUSR | S_IWUSR);
 
-    printf("Escriba su tweet acontinuacion:\n");
+    printf("Escriba su tweet a continuación:\n");
     fgets(cliente.mensaje.tweet.mensaje, 200, stdin);
 
     write(fdGeneral, &cliente.mensaje, sizeof(cliente.mensaje));

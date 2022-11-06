@@ -8,13 +8,14 @@
 #include <unistd.h>
 #include <fcntl.h>
 #include "colors.h"
+#include <locale.h>
 
 // ./gestor
-// Parametros:
+// Parámetros:
 // 1: número de usuarios máximo
 // 2: relaciones en archivo de texto
 // 3: modo del gestor
-// 4: tiempo impresion
+// 4: tiempo impresión
 // 5: nombre del pipe
 
 int **leerMatriz(char *fileName);
@@ -22,6 +23,7 @@ void leerTweet(struct SMensaje temporal);
 
 int main(int argc, char **argv)
 {
+    setlocale(LC_ALL, "");
     int contMensajes = 0;
     int contClientes = 0;
 
@@ -60,10 +62,10 @@ int main(int argc, char **argv)
 
     printf(AMARILLO_T "GESTOR INICIALIZADO\n" RESET_COLOR);
     printf("===========================================================\n");
-    printf(CYAN_T "Cantidad maxima de usuarios: " RESET_COLOR AMARILLO_T "%d" RESET_COLOR "\n", gestor.numUsuarios);
+    printf(CYAN_T "Cantidad máxima de usuarios: " RESET_COLOR AMARILLO_T "%d" RESET_COLOR "\n", gestor.numUsuarios);
     printf(CYAN_T "Relaciones cargadas?: " RESET_COLOR AMARILLO_T "%d" RESET_COLOR "\n", (gestor.numUsuarios != NULL ? 1 : 0));
     printf(CYAN_T "Modo del gestor: " RESET_COLOR AMARILLO_T "%c" RESET_COLOR "\n", gestor.modo);
-    printf(CYAN_T "Tiempo de impresion: " RESET_COLOR AMARILLO_T "%f" RESET_COLOR "\n", gestor.tiempo);
+    printf(CYAN_T "Tiempo de impresión: " RESET_COLOR AMARILLO_T "%f" RESET_COLOR "\n", gestor.tiempo);
     printf(CYAN_T "Nombre del pipe del gestor: " RESET_COLOR AMARILLO_T "%s" RESET_COLOR "\n", gestor.pipeNom);
 
     // Lectura de pipe
@@ -81,7 +83,7 @@ int main(int argc, char **argv)
 
             case CONEXION:
                 printf("===========================================================\n");
-                fprintf(stderr, MAGENTA_T "Solicitud de conexion entrante del usuario ID:" RESET_COLOR AMARILLO_T " %d \n" RESET_COLOR, temporal.idEmisor);
+                fprintf(stderr, MAGENTA_T "Solicitud de conexión entrante del usuario ID:" RESET_COLOR AMARILLO_T " %d \n" RESET_COLOR, temporal.idEmisor);
                 // fprintf(stderr, "%d\n", temporal.tipo);
                 fprintf(stderr, MAGENTA_T "Nombre del pipe: " RESET_COLOR AMARILLO_T "%s\n" RESET_COLOR, temporal.conexion.pipeNom);
                 bool encontrado = false;
