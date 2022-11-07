@@ -119,7 +119,7 @@ int main(int argc, char **argv)
 void leerTweet(struct SMensaje temporal)
 {
     printf("========================================================= \n");
-    printf(AZUL_T "Tweet entrante del usuario ID: " RESET_COLOR AMARILLO_T "%d\n" RESET_COLOR, temporal.idEmisor);
+    printf(AZUL_T "Tweet entrante del proceso ID: " RESET_COLOR AMARILLO_T "%d\n" RESET_COLOR, temporal.processIdEmisor);
     printf(AZUL_T "Nombre del pipe : " RESET_COLOR AMARILLO_T "%s\n" RESET_COLOR, temporal.conexion.pipeNom);
     printf(VERDE_T "%s" RESET_COLOR, temporal.tweet.mensaje);
 }
@@ -213,60 +213,95 @@ void imprimirMatriz(int **matriz)
 void atenderConectarCliente()
 {
     printf("===========================================================\n");
-    fprintf(stderr, MAGENTA_T "Solicitud de conexión entrante del usuario ID:" RESET_COLOR AMARILLO_T " %d \n" RESET_COLOR, temporal.idEmisor);
+    fprintf(stderr, MAGENTA_T "Solicitud de conexión entrante del proceso ID:" RESET_COLOR AMARILLO_T " %d \n" RESET_COLOR, temporal.processIdEmisor);
     // fprintf(stderr, "%d\n", temporal.tipo);
     fprintf(stderr, MAGENTA_T "Nombre del pipe: " RESET_COLOR AMARILLO_T "%s\n" RESET_COLOR, temporal.conexion.pipeNom);
     bool encontrado = false;
+    bool conectado = false;
+    int idEncontrado;
     for (int i = 0; i < contClientes; i++)
     {
-        if (gestor.clientes[i].idCliente == temporal.idEmisor)
+        if (strcmp(gestor.clientes[i].nombreUsuario, temporal.nombreUsuario) == 0)
         {
             encontrado = true;
+            idEncontrado = i;
+            if (gestor.clientes[i].conectado)
+            {
+                conectado = true;
+            }
         }
     }
+
+    // Si se encuentra el usuario se verifica si esta o no conectado
     if (encontrado)
     {
         fprintf(stderr, MAGENTA_T "Fue encontrado?: " RESET_COLOR AMARILLO_T "Si"
                                   " \n" RESET_COLOR);
+        if (conectado)
+        {
+            printf("Usuario encontrado, ya conectado \n");
+        }
+        else
+        {
+            printf("Usuario encontrado, no conectado \n");
+        }
     }
+
+    // Si no existe el usuario
     else
     {
         fprintf(stderr, MAGENTA_T "Fue encontrado?: " RESET_COLOR AMARILLO_T "No"
                                   "\n" RESET_COLOR);
     }
+
     gestor.clientes[contClientes].fd = open(temporal.conexion.pipeNom, O_WRONLY);
     if (gestor.clientes[contClientes].fd < 0)
     {
         perror("Error");
     }
+
+    // Si no fue encontrado, se crea nuevo usuario
     if (!encontrado)
     {
-        gestor.clientes[contClientes].idCliente = temporal.idEmisor;
+        gestor.clientes[contClientes].idCliente = contClientes;
         strcpy(gestor.clientes[contClientes].mensaje.conexion.pipeNom, temporal.conexion.pipeNom);
+        strcpy(gestor.clientes[contClientes].nombreUsuario, temporal.nombreUsuario);
+        // Se verifica exitoso el registro con 1, si ya fue registrado con 0
         temporal.conexion.exito = 1;
         write(gestor.clientes[contClientes].fd, &temporal, sizeof(temporal));
         contClientes++;
     }
+    // Si fue encontrado, se revisa su conexion
     else
     {
         struct SMensaje aux;
-        aux.conexion.exito = 0;
-        write(gestor.clientes[contClientes].fd, &aux, sizeof(aux));
+        // Si está conectado, no se puede crear una nueva conexion
+        if (conectado)
+        {
+            aux.conexion.exito = 0;
+            write(gestor.clientes[contClientes].fd, &aux, sizeof(aux));
+        }
+        // Si no está conectado, se crea una nueva conexion con un nombre de usuario ya existente
+        else
+        {
+            strcpy(gestor.clientes[idEncontrado].mensaje.conexion.pipeNom, aux.conexion.pipeNom);
+            aux.conexion.exito = 1;
+            write(gestor.clientes[idEncontrado].fd, &aux, sizeof(aux));
+        }
     }
 }
 
 void atenderSeguimientoCliente()
 {
     printf("===========================================================\n");
-    fprintf(stderr, MAGENTA_T "Solicitud de Seguimiento entrante del usuario ID:" RESET_COLOR AMARILLO_T " %d \n" RESET_COLOR, temporal.idEmisor);
+    fprintf(stderr, MAGENTA_T "Solicitud de Seguimiento entrante del proceso ID:" RESET_COLOR AMARILLO_T " %d \n" RESET_COLOR, temporal.processIdEmisor);
     fprintf(stderr, MAGENTA_T "Nombre del pipe: " RESET_COLOR AMARILLO_T "%s\n" RESET_COLOR, temporal.conexion.pipeNom);
     bool seguido = false;
-    gestor.clientes[contClientes].idCliente = temporal.idEmisor;
     bool emisorExiste = false;
 
     for (int i = 0; i < contClientes; i++)
     {
-        if (gestor.clientes[i].idCliente == temporal.idEmisor)
+        if (gestor.clientes[i].processId == temporal.processIdEmisor)
         {
             emisorExiste = true;
         }
