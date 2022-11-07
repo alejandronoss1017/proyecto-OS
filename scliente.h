@@ -13,7 +13,9 @@ struct SCliente
 {
     int idCliente;
     int processId;
+    bool conectado;
     int fd;
+    char nombreUsuario[40];
     char pipeNom[20];
     struct STweet tweetsPorLeer[20];
     struct SMensaje mensaje;

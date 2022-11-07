@@ -11,7 +11,8 @@
 
 struct SMensaje
 {
-    int idEmisor;
+    int processIdEmisor;
+    char nombreUsuario[40];
     int tipo;
     struct STweet tweet;
     struct Seguimiento seguimiento;
