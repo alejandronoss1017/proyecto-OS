@@ -12,6 +12,7 @@
 struct SCliente
 {
     int idCliente;
+    int processId;
     int fd;
     char pipeNom[20];
     struct STweet tweetsPorLeer[20];

@@ -22,6 +22,7 @@
 // Declaración de la firma de las distintas funciones
 void realizarConexion(struct SCliente cliente, int fdGeneral, int fdEspecifico);
 void enviarTweet(struct SCliente cliente, int fdGeneral, int fdEspecifico);
+void follow(struct SCliente cliente, int fdGeneral, int fdEspecifico);
 
 int main(int argc, char **argv)
 {
@@ -54,52 +55,65 @@ int main(int argc, char **argv)
 
     bool terminar = false;
     char opcion;
-    do
+    char opcion2;
+    system("clear");
+
+    printf("===================================================================================== \n");
+    printf(AZUL_T "     ________  __       __  ______  ________  ________  ________  _______   \n" RESET_COLOR);
+    printf(AZUL_T "    /        |/  |  _  /  |/      |/        |/        |/        |/       \  \n" RESET_COLOR);
+    printf(AZUL_T "    $$$$$$$$/ $$ | / \ $$ |$$$$$$/ $$$$$$$$/ $$$$$$$$/ $$$$$$$$/ $$$$$$$  | \n" RESET_COLOR);
+    printf(AZUL_T "       $$ |   $$ |/$  \$$ |  $$ |     $$ |      $$ |   $$ |__    $$ |__$$ | \n" RESET_COLOR);
+    printf(AZUL_T "       $$ |   $$ /$$$  $$ |  $$ |     $$ |      $$ |   $$    |   $$    $$<  \n" RESET_COLOR);
+    printf(AZUL_T "       $$ |   $$ $$/$$ $$ |  $$ |     $$ |      $$ |   $$$$$/    $$$$$$$  | \n" RESET_COLOR);
+    printf(AZUL_T "       $$ |   $$$$/  $$$$ | _$$ |_    $$ |      $$ |   $$ |_____ $$ |  $$ | \n" RESET_COLOR);
+    printf(AZUL_T "       $$ |   $$$/    $$$ |/ $$   |   $$ |      $$ |   $$       |$$ |  $$ | \n" RESET_COLOR);
+    printf(AZUL_T "       $$/    $$/      $$/ $$$$$$/    $$/       $$/    $$$$$$$$/ $$/   $$/  \n" RESET_COLOR);
+    printf(AZUL_T "                                                                           \n" RESET_COLOR);
+    printf("===================================================================================== \n");
+    printf("Desea realizar la solicitud de conexion? \n");
+    scanf("%c", &opcion2);
+    if (opcion2 == 's')
     {
-        // System(clear) no funciona en el IDE pero en la consola perfecto
+        realizarConexion(cliente, fdGeneral, fdEspecifico);
         system("clear");
-        printf("MENU SELECCIÓN DE PETICIÓN \n");
-        printf("1. Conexion \n");
-        printf("2. Seguimiento \n");
-        printf("3. Tweet \n");
-        printf("0. Salir \n");
-
-        scanf(" %c", &opcion);
-        fgetc(stdin);
-
-        switch (opcion)
+        do
         {
-        /*
-            El caso de CONEXION realiza...
-        */
-        case '1':
-            realizarConexion(cliente, fdGeneral, fdEspecifico);
-            break;
-        case '2':
-            cliente.mensaje.tipo = 2;
-            
-            break;
-        case '3':
+            printf("MENU SELECCIÓN DE PETICIÓN \n");
+            printf("1. Seguimiento \n");
+            printf("2. Tweet \n");
+            printf("0. Salir \n");
+
+            scanf(" %c", &opcion);
+            fgetc(stdin);
+
+            switch (opcion)
+            {
             /*
-                El caso TWEET va a crear el pipe del cliente para comunicarse con el
-                gestor, este escribirá un mensaje por pantalla que posteriormente
-                sera enviado al gestor.
+                El caso de CONEXION realiza...
             */
-            enviarTweet(cliente, fdGeneral, fdEspecifico);
+            case '1':
+                follow(cliente, fdGeneral, fdEspecifico);
+                break;
+            case '2':
+                enviarTweet(cliente, fdGeneral, fdEspecifico);
+                break;
+            case '0':
+                // Cierra y elimina el pipe
+                close(cliente.pipeNom);
+                unlink(cliente.pipeNom);
+                terminar = true;
+                break;
+            default:
+                printf("Seleccione una de las opciones establecidas \n");
 
-            break;
-        case '0':
-            // Cierra y elimina el pipe
-            close(cliente.pipeNom);
-            unlink(cliente.pipeNom);
-            terminar = true;
-            break;
-        default:
-            printf("Seleccione una de las opciones establecidas \n");
-
-            break;
-        }
-    } while (terminar != true);
+                break;
+            }
+        } while (terminar != true);
+    }
+    else
+    {
+        printf("No se puede realizar ninguna solicitud, buen dia. \n");
+    }
 
     return 0;
 }
@@ -150,9 +164,9 @@ void realizarConexion(struct SCliente cliente, int fdGeneral, int fdEspecifico)
     sleep(3);
 }
 
-void follow(struct SCliente cliente, int fdGeneral, int fdEspecifico, int idSeguir)
+void follow(struct SCliente cliente, int fdGeneral, int fdEspecifico)
 {
-    cliente.mensaje.tipo=SEGUIMIENTO;
+    cliente.mensaje.tipo = SEGUIMIENTO;
     strcpy(cliente.mensaje.conexion.pipeNom, cliente.pipeNom);
     system("clear");
 
@@ -160,9 +174,9 @@ void follow(struct SCliente cliente, int fdGeneral, int fdEspecifico, int idSegu
     mkfifo(cliente.pipeNom, S_IRUSR | S_IWUSR);
 
     printf("Escriba el identificador del usuario que desee seguir\n");
-            scanf(" %c", &idSeguir);
+    scanf("%d\n", cliente.mensaje.seguimiento.idReceptor);
     write(fdGeneral, &cliente.mensaje, sizeof(cliente.mensaje));
-    printf("Solcitud enviada\n");
+    printf("Solicitud enviada\n");
     sleep(3);
 }
 
@@ -174,8 +188,8 @@ void enviarTweet(struct SCliente cliente, int fdGeneral, int fdEspecifico)
     strcpy(cliente.mensaje.conexion.pipeNom, cliente.pipeNom);
     system("clear");
 
-    unlink(cliente.pipeNom);
-    mkfifo(cliente.pipeNom, S_IRUSR | S_IWUSR);
+    //unlink(cliente.pipeNom);
+    //mkfifo(cliente.pipeNom, S_IRUSR | S_IWUSR);
 
     printf("Escriba su tweet a continuación:\n");
     fgets(cliente.mensaje.tweet.mensaje, 200, stdin);

@@ -22,31 +22,27 @@
 int **leerMatriz(char *fileName);
 void imprimirMatriz(int **matriz);
 void leerTweet(struct SMensaje temporal);
+void atenderConectarCliente();
+void atenderSeguimientoCliente();
+void atenderTweetCliente();
 
 /*
     Variables globales
 */
 
+// Creamos la estructura gestor
+struct SGestor gestor;
 int filas = 0;
 int columnas = 0;
+int contMensajes = 0;
+int contClientes = 0;
+struct SMensaje temporal;
+int leido;
 
 int main(int argc, char **argv)
 {
     setlocale(LC_ALL, "");
-    int contMensajes = 0;
-    int contClientes = 0;
-
-    /*
-        Creación de un arreglo dinámico de clientes para almacenar toda la información
-        de los clientes que se han conectado al gestor.
-
-        Podemos modificar el tamaño de este arreglo con realloc.
-    */
-    struct SCliente *clientes = calloc(atoi(argv[1]), sizeof(struct SCliente));
-
     mode_t fifo_mode = S_IRUSR | S_IWUSR;
-    // Creamos la estructura gestor
-    struct SGestor gestor;
 
     // 1. Inicializamos num máximo de usuarios
     gestor.numUsuarios = atoi(argv[1]);
@@ -80,74 +76,26 @@ int main(int argc, char **argv)
     printf(AMARILLO_T "GESTOR INICIALIZADO\n" RESET_COLOR);
     printf("===========================================================\n");
     printf(CYAN_T "Cantidad máxima de usuarios: " RESET_COLOR AMARILLO_T "%d" RESET_COLOR "\n", gestor.numUsuarios);
-    printf(CYAN_T "Relaciones cargadas?: " RESET_COLOR AMARILLO_T "%d" RESET_COLOR "\n", (gestor.numUsuarios != NULL ? 1 : 0));
+    printf(CYAN_T "Relaciones cargadas?: " RESET_COLOR AMARILLO_T "%s" RESET_COLOR "\n", (gestor.numUsuarios != NULL ? "Si" : "No"));
     printf(CYAN_T "Modo del gestor: " RESET_COLOR AMARILLO_T "%c" RESET_COLOR "\n", gestor.modo);
     printf(CYAN_T "Tiempo de impresión: " RESET_COLOR AMARILLO_T "%f" RESET_COLOR "\n", gestor.tiempo);
     printf(CYAN_T "Nombre del pipe del gestor: " RESET_COLOR AMARILLO_T "%s" RESET_COLOR "\n", gestor.pipeNom);
     printf("===========================================================\n");
     imprimirMatriz(gestor.relaciones);
 
-    if (gestor.numUsuarios != NULL)
-    {
-        for (int i = 0; i < 10; i++)
-        {
-            for (int j = 0; j < 6; j++)
-            {
-                printf("%d", gestor.relaciones[i][j]);
-            }
-        }
-    }
-
     // Lectura de pipe
     while (true)
     {
-        struct SMensaje temporal;
-        int leido;
         if ((leido = read(fdGeneral, &temporal, sizeof(struct SMensaje))) > 0)
         {
-            // fprintf(stderr, "Solicitud entrante \n");
-            // fprintf(stderr, "%d\n", temporal.tipo);
-            // fprintf(stderr, "%s\n", temporal.conexion.pipeNom);
             switch (temporal.tipo)
             {
-
             case CONEXION:
-                printf("===========================================================\n");
-                fprintf(stderr, MAGENTA_T "Solicitud de conexión entrante del usuario ID:" RESET_COLOR AMARILLO_T " %d \n" RESET_COLOR, temporal.idEmisor);
-                // fprintf(stderr, "%d\n", temporal.tipo);
-                fprintf(stderr, MAGENTA_T "Nombre del pipe: " RESET_COLOR AMARILLO_T "%s\n" RESET_COLOR, temporal.conexion.pipeNom);
-                bool encontrado = false;
-                for (int i = 0; i < contClientes; i++)
-                {
-                    if (gestor.clientes[i].idCliente == temporal.idEmisor)
-                    {
-                        encontrado = true;
-                    }
-                }
-                fprintf(stderr, MAGENTA_T "Fue encontrado?:" RESET_COLOR AMARILLO_T " %d \n" RESET_COLOR, encontrado);
-                gestor.clientes[contClientes].fd = open(temporal.conexion.pipeNom, O_WRONLY);
-                if (gestor.clientes[contClientes].fd < 0)
-                {
-                    perror("Error");
-                    continue;
-                }
-                if (!encontrado)
-                {
-                    gestor.clientes[contClientes].idCliente = temporal.idEmisor;
-                    strcpy(gestor.clientes[contClientes].mensaje.conexion.pipeNom, temporal.conexion.pipeNom);
-                    temporal.conexion.exito = 1;
-                    write(gestor.clientes[contClientes].fd, &temporal, sizeof(temporal));
-                    contClientes++;
-                }
-                else
-                {
-                    struct SMensaje aux;
-                    aux.conexion.exito = 0;
-                    write(gestor.clientes[contClientes].fd, &aux, sizeof(aux));
-                }
+                atenderConectarCliente();
                 break;
             case SEGUIMIENTO:
-                /*1. se recorre la matriz de seguimiento del cliente
+                /*
+                1. se recorre la matriz de seguimiento del cliente
                 2. Se busca la fila correspondiente al id del cliente, por ejemplo si el cliente que quiere seguir a otra persona tiene el id 1, se sigue al id 1
                 3. Se busca la columna correspondiente al usuario que desea seguir, dado por Id seguidor
                 4. Una vez ubicados dentro de la posición, se verifica el número
@@ -155,28 +103,7 @@ int main(int argc, char **argv)
                 6. Si hay un 1, decir que ya lo sigue
                 7. Mensaje de exito o fracaso
                 */
-                printf("===========================================================\n");
-                fprintf(stderr, MAGENTA_T "Solicitud de Seguimiento entrante del usuario ID:" RESET_COLOR AMARILLO_T " %d \n" RESET_COLOR, temporal.idEmisor);
-                fprintf(stderr, MAGENTA_T "Nombre del pipe: " RESET_COLOR AMARILLO_T "%s\n" RESET_COLOR, temporal.conexion.pipeNom);
-                bool seguido = false;
-                gestor.clientes[contClientes].idCliente = temporal.idEmisor;
-                bool emisorExiste = false;
-
-                for (int i = 0; i < contClientes; i++)
-                {
-                    if (gestor.clientes[i].idCliente == temporal.idEmisor)
-                    {
-                        emisorExiste = true;
-                    }
-                }
-                for (int i = 0; i < filas; i++)
-                {
-                    // if (temporal.idEmisor == gestor.clientes[contClientes].mensaje.seguimiento[i])
-                    //     for (int i = 0; i < columnas; i++)
-                    //     {
-                    //     }
-                }
-
+                atenderSeguimientoCliente();
                 break;
             case TWEET:
                 leerTweet(temporal);
@@ -194,7 +121,7 @@ void leerTweet(struct SMensaje temporal)
     printf("========================================================= \n");
     printf(AZUL_T "Tweet entrante del usuario ID: " RESET_COLOR AMARILLO_T "%d\n" RESET_COLOR, temporal.idEmisor);
     printf(AZUL_T "Nombre del pipe : " RESET_COLOR AMARILLO_T "%s\n" RESET_COLOR, temporal.conexion.pipeNom);
-    printf(VERDE_T "%s\n" RESET_COLOR, temporal.tweet.mensaje);
+    printf(VERDE_T "%s" RESET_COLOR, temporal.tweet.mensaje);
 }
 
 int **leerMatriz(char *fileName)
@@ -281,4 +208,71 @@ void imprimirMatriz(int **matriz)
         }
         printf("\n");
     }
+}
+
+void atenderConectarCliente()
+{
+    printf("===========================================================\n");
+    fprintf(stderr, MAGENTA_T "Solicitud de conexión entrante del usuario ID:" RESET_COLOR AMARILLO_T " %d \n" RESET_COLOR, temporal.idEmisor);
+    // fprintf(stderr, "%d\n", temporal.tipo);
+    fprintf(stderr, MAGENTA_T "Nombre del pipe: " RESET_COLOR AMARILLO_T "%s\n" RESET_COLOR, temporal.conexion.pipeNom);
+    bool encontrado = false;
+    for (int i = 0; i < contClientes; i++)
+    {
+        if (gestor.clientes[i].idCliente == temporal.idEmisor)
+        {
+            encontrado = true;
+        }
+    }
+    if (encontrado)
+    {
+        fprintf(stderr, MAGENTA_T "Fue encontrado?: " RESET_COLOR AMARILLO_T "Si"
+                                  " \n" RESET_COLOR);
+    }
+    else
+    {
+        fprintf(stderr, MAGENTA_T "Fue encontrado?: " RESET_COLOR AMARILLO_T "No"
+                                  "\n" RESET_COLOR);
+    }
+    gestor.clientes[contClientes].fd = open(temporal.conexion.pipeNom, O_WRONLY);
+    if (gestor.clientes[contClientes].fd < 0)
+    {
+        perror("Error");
+    }
+    if (!encontrado)
+    {
+        gestor.clientes[contClientes].idCliente = temporal.idEmisor;
+        strcpy(gestor.clientes[contClientes].mensaje.conexion.pipeNom, temporal.conexion.pipeNom);
+        temporal.conexion.exito = 1;
+        write(gestor.clientes[contClientes].fd, &temporal, sizeof(temporal));
+        contClientes++;
+    }
+    else
+    {
+        struct SMensaje aux;
+        aux.conexion.exito = 0;
+        write(gestor.clientes[contClientes].fd, &aux, sizeof(aux));
+    }
+}
+
+void atenderSeguimientoCliente()
+{
+    printf("===========================================================\n");
+    fprintf(stderr, MAGENTA_T "Solicitud de Seguimiento entrante del usuario ID:" RESET_COLOR AMARILLO_T " %d \n" RESET_COLOR, temporal.idEmisor);
+    fprintf(stderr, MAGENTA_T "Nombre del pipe: " RESET_COLOR AMARILLO_T "%s\n" RESET_COLOR, temporal.conexion.pipeNom);
+    bool seguido = false;
+    gestor.clientes[contClientes].idCliente = temporal.idEmisor;
+    bool emisorExiste = false;
+
+    for (int i = 0; i < contClientes; i++)
+    {
+        if (gestor.clientes[i].idCliente == temporal.idEmisor)
+        {
+            emisorExiste = true;
+        }
+    }
+}
+
+void atenderTweetCliente()
+{
 }
