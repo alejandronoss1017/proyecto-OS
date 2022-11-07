@@ -37,21 +37,22 @@ int main(int argc, char **argv)
     int idSeguir;
     fdGeneral = open(argv[1], O_WRONLY);
 
-    printf("PIpe general abierto\n");
-
     if (fdGeneral == -1)
     {
         perror("pipe: ");
         exit(0);
     }
 
+
     struct SCliente cliente;
 
     // Inicializamos el ID y el idEmisor del cliente con el del proceso
-    cliente.idCliente = (int)getpid();
-    cliente.mensaje.idEmisor = cliente.idCliente;
+    cliente.processId = (int)getpid();
+    cliente.mensaje.processIdEmisor = cliente.processId;
 
     strcpy(cliente.pipeNom, argv[2]);
+
+    strcpy(cliente.nombreUsuario, argv[3]);
 
     bool terminar = false;
     char opcion;
@@ -122,14 +123,16 @@ void realizarConexion(struct SCliente cliente, int fdGeneral, int fdEspecifico)
 {
     cliente.mensaje.tipo = CONEXION;
     cliente.mensaje.conexion.status = 1;
+    strcpy(cliente.mensaje.nombreUsuario, cliente.nombreUsuario);
     strcpy(cliente.mensaje.conexion.pipeNom, cliente.pipeNom);
-    unlink(cliente.pipeNom);
-    mkfifo(cliente.pipeNom, S_IRUSR | S_IWUSR);
 
     // Primero el write antes del open
 
     write(fdGeneral, &cliente.mensaje, sizeof(cliente.mensaje));
     printf("Solicitud enviada\n");
+
+    unlink(cliente.pipeNom);
+    mkfifo(cliente.pipeNom, S_IRUSR | S_IWUSR);
 
     if ((fdEspecifico = open(cliente.pipeNom, O_RDONLY)) == -1)
     {
@@ -188,8 +191,8 @@ void enviarTweet(struct SCliente cliente, int fdGeneral, int fdEspecifico)
     strcpy(cliente.mensaje.conexion.pipeNom, cliente.pipeNom);
     system("clear");
 
-    //unlink(cliente.pipeNom);
-    //mkfifo(cliente.pipeNom, S_IRUSR | S_IWUSR);
+    // unlink(cliente.pipeNom);
+    // mkfifo(cliente.pipeNom, S_IRUSR | S_IWUSR);
 
     printf("Escriba su tweet a continuación:\n");
     fgets(cliente.mensaje.tweet.mensaje, 200, stdin);
