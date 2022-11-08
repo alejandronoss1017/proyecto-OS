@@ -1,14 +1,14 @@
 
 # Mini Twitter
 
-Comunicacion entre procesos a traves de distintos pipes.
+Comunicación entre procesos a traves de distintos pipes.
 
-## Configuracion para VScode
+## Configuración para VScode
 
 Para ejecutar los distintos programas debemos configurar nuestros archivos `launch.json` y `tasks.json`
 que se encuentran dentro del workspace en el directorio `.vscode`.
 
-La configuracion para el archivo `launch.json` es la siguiente:
+La configuración para el archivo `launch.json` es la siguiente:
 
 ```json
 {
@@ -29,7 +29,7 @@ La configuracion para el archivo `launch.json` es la siguiente:
       "request": "launch",
       "preLaunchTask": "cmake build",
       "program": "${workspaceFolder}/gestor",
-      "args": ["80", "ArchivoEntrada.txt", "A", "5", "pipeGeneral"],
+      "args": ["80", "ArchivoEntrada2.txt", "A", "5", "pipeGeneral"],
       "cwd": "${fileDirname}",
       "externalConsole": true
     }
@@ -55,9 +55,9 @@ Para el archivo `tasks.json` es la siguiente:
 
 ```
 
-La configuracion puede variar segun los distintos compiladores, parametros 
-que se quieran utilizar, esto es solo un ejemplo practico para la ejecucion, para 
-observar todos los posibles atributos y configuraciones se recomienda leer la documentacion
+La configuración puede variar según los distintos compiladores, parámetros 
+que se quieran utilizar, esto es solo un ejemplo practico para la ejecución, para 
+observar todos los posibles atributos y configuraciones se recomienda leer la documentación
 de [VScode](https://code.visualstudio.com/docs/editor/debugging).
 ## Authors
 
