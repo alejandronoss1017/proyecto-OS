@@ -19,7 +19,7 @@ La configuración para el archivo `launch.json` es la siguiente:
       "type": "cppdbg",
       "request": "launch",
       "program": "${workspaceFolder}/client",
-      "args": ["pipeGeneral", "pipeEspecifico"],
+      "args": ["pipeGeneral", "pipeEspecifico","usuarioGenial"],
       "cwd": "${fileDirname}",
       "externalConsole": true
     },
