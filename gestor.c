@@ -268,7 +268,10 @@ void atenderConectarCliente()
         strcpy(gestor.clientes[contClientes].nombreUsuario, temporal.nombreUsuario);
         // Se verifica exitoso el registro con 1, si ya fue registrado con 0
         temporal.conexion.exito = 1;
+        temporal.conexion.idRetorno = contClientes;
+        temporal.conexion.fdRetorno = gestor.clientes[contClientes].fd;
         write(gestor.clientes[contClientes].fd, &temporal, sizeof(temporal));
+        printf("Respuesta enviada! \n");
         contClientes++;
     }
     // Si fue encontrado, se revisa su conexion
@@ -285,7 +288,10 @@ void atenderConectarCliente()
                 perror("Error");
             }
             aux.conexion.exito = 0;
+            aux.conexion.idRetorno = contClientes;
+            aux.conexion.fdRetorno = gestor.clientes[contClientes].fd;
             write(gestor.clientes[contClientes].fd, &aux, sizeof(aux));
+            printf("Respuesta enviada! \n");
         }
         // Si no está conectado, se crea una nueva conexion con un nombre de usuario ya existente
         else
@@ -297,7 +303,10 @@ void atenderConectarCliente()
             }
             strcpy(gestor.clientes[idEncontrado].mensaje.conexion.pipeNom, aux.conexion.pipeNom);
             aux.conexion.exito = 1;
+            aux.conexion.idRetorno = idEncontrado;
+            aux.conexion.fdRetorno = gestor.clientes[idEncontrado].fd;
             write(gestor.clientes[idEncontrado].fd, &aux, sizeof(aux));
+            printf("Respuesta enviada! \n");
         }
     }
 }
@@ -309,14 +318,41 @@ void atenderSeguimientoCliente()
     fprintf(stderr, MAGENTA_T "Nombre del pipe: " RESET_COLOR AMARILLO_T "%s\n" RESET_COLOR, temporal.conexion.pipeNom);
     bool seguido = false;
     bool emisorExiste = false;
-
-    for (int i = 0; i < contClientes; i++)
+    struct SMensaje aux;
+    if (temporal.seguimiento.idReceptor > filas || temporal.seguimiento.idReceptor < filas)
     {
-        if (gestor.clientes[i].processId == temporal.processIdEmisor)
+        aux.seguimiento.exito = 0;
+    }
+    else
+    {
+        if (temporal.seguimiento.status == 1)
         {
-            emisorExiste = true;
+            if (gestor.relaciones[temporal.idEmisor][temporal.seguimiento.idReceptor] == 1)
+            {
+                // caso 2 de exito: cuando ya se sigue un usuario y se le avisa
+                aux.seguimiento.exito = 2;
+            }
+            else
+            {
+                gestor.relaciones[temporal.idEmisor][temporal.seguimiento.idReceptor] = 1;
+                aux.seguimiento.exito = 1;
+            }
+        }
+        else
+        {
+            if (gestor.relaciones[temporal.idEmisor][temporal.seguimiento.idReceptor] == 0)
+            {
+                aux.seguimiento.exito = 2;
+            }
+            else
+            {
+                gestor.relaciones[temporal.idEmisor][temporal.seguimiento.idReceptor] = 0;
+                aux.seguimiento.exito = 1;
+            }
         }
     }
+    write(gestor.clientes[temporal.idEmisor].fd, &aux, sizeof(aux));
+    printf("Respuesta enviada! \n");
 }
 
 void atenderTweetCliente()
