@@ -9,7 +9,8 @@ struct Seguimiento
 {
     bool status;
     int idReceptor;
-
+    int exito;
+    int fdSeguir;
 };
 
 #endif // SEGUIMIENTO__H

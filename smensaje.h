@@ -12,6 +12,7 @@
 struct SMensaje
 {
     int processIdEmisor;
+    int idEmisor;
     char nombreUsuario[40];
     int tipo;
     struct STweet tweet;

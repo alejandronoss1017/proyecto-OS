@@ -9,6 +9,8 @@ struct SConexion
 {
     bool status;
     int exito;
+    int idRetorno;
+    int fdRetorno;
     char pipeNom[20];
 };
 
