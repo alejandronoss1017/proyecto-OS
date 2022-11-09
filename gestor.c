@@ -239,11 +239,11 @@ void atenderConectarCliente()
                                   " \n" RESET_COLOR);
         if (conectado)
         {
-            printf("Usuario encontrado, ya conectado \n");
+            printf(MAGENTA_T "Usuario encontrado," RESET_COLOR AMARILLO_T " ya conectado \n" RESET_COLOR);
         }
         else
         {
-            printf("Usuario encontrado, no conectado \n");
+            printf(MAGENTA_T "Usuario encontrado," RESET_COLOR AMARILLO_T " no conectado \n" RESET_COLOR);
         }
     }
 
@@ -254,15 +254,15 @@ void atenderConectarCliente()
                                   "\n" RESET_COLOR);
     }
 
-    gestor.clientes[contClientes].fd = open(temporal.conexion.pipeNom, O_WRONLY);
-    if (gestor.clientes[contClientes].fd < 0)
-    {
-        perror("Error");
-    }
-
     // Si no fue encontrado, se crea nuevo usuario
     if (!encontrado)
     {
+        gestor.clientes[contClientes].fd = open(temporal.conexion.pipeNom, O_WRONLY);
+        if (gestor.clientes[contClientes].fd < 0)
+        {
+            perror("Error");
+        }
+
         gestor.clientes[contClientes].idCliente = contClientes;
         strcpy(gestor.clientes[contClientes].mensaje.conexion.pipeNom, temporal.conexion.pipeNom);
         strcpy(gestor.clientes[contClientes].nombreUsuario, temporal.nombreUsuario);
@@ -274,16 +274,27 @@ void atenderConectarCliente()
     // Si fue encontrado, se revisa su conexion
     else
     {
+
         struct SMensaje aux;
         // Si está conectado, no se puede crear una nueva conexion
         if (conectado)
         {
+            gestor.clientes[contClientes].fd = open(temporal.conexion.pipeNom, O_WRONLY);
+            if (gestor.clientes[contClientes].fd < 0)
+            {
+                perror("Error");
+            }
             aux.conexion.exito = 0;
             write(gestor.clientes[contClientes].fd, &aux, sizeof(aux));
         }
         // Si no está conectado, se crea una nueva conexion con un nombre de usuario ya existente
         else
         {
+            gestor.clientes[idEncontrado].fd = open(temporal.conexion.pipeNom, O_WRONLY);
+            if (gestor.clientes[idEncontrado].fd < 0)
+            {
+                perror("Error");
+            }
             strcpy(gestor.clientes[idEncontrado].mensaje.conexion.pipeNom, aux.conexion.pipeNom);
             aux.conexion.exito = 1;
             write(gestor.clientes[idEncontrado].fd, &aux, sizeof(aux));

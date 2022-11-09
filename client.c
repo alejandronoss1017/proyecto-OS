@@ -79,6 +79,7 @@ int main(int argc, char **argv)
 
         case ':':
             printf("La opción %d requiere un argumento\n", opt);
+            exit(1);
             break;
         case '?':
             printf("unknown option: %c\n", optopt);
