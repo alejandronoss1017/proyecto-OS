@@ -19,10 +19,13 @@
 #include "colors.h"
 #include <locale.h>
 
+struct SCliente cliente;
+
 // Declaración de la firma de las distintas funciones
-void realizarConexion(struct SCliente cliente, int fdGeneral, int fdEspecifico);
-void enviarTweet(struct SCliente cliente, int fdGeneral, int fdEspecifico);
-void follow(struct SCliente cliente, int fdGeneral, int fdEspecifico);
+void realizarConexion(int fdGeneral, int fdEspecifico);
+void enviarTweet(int fdGeneral, int fdEspecifico);
+void follow(int fdGeneral, int fdEspecifico);
+void unfollow(int fdGeneral, int fdEspecifico);
 
 int main(int argc, char **argv)
 {
@@ -38,8 +41,6 @@ int main(int argc, char **argv)
     int idSeguir;
 
     int opt;
-
-    struct SCliente cliente;
 
     /*
         Implementación de las flags del para la inicializarían del programa
@@ -110,13 +111,16 @@ int main(int argc, char **argv)
     scanf("%c", &opcion2);
     if (opcion2 == 's')
     {
-        realizarConexion(cliente, fdGeneral, fdEspecifico);
+        realizarConexion(fdGeneral, fdEspecifico);
         system("clear");
         do
         {
+            printf("Id asignado: %d\n", cliente.idCliente);
+            printf("===================================================================================== \n");
             printf("MENU SELECCIÓN DE PETICIÓN \n");
-            printf("1. Seguimiento \n");
-            printf("2. Tweet \n");
+            printf("1. Follow \n");
+            printf("2. Unfollow \n");
+            printf("3. Tweet \n");
             printf("0. Salir \n");
 
             scanf(" %c", &opcion);
@@ -128,10 +132,13 @@ int main(int argc, char **argv)
                 El caso de CONEXION realiza...
             */
             case '1':
-                follow(cliente, fdGeneral, fdEspecifico);
+                follow(fdGeneral, fdEspecifico);
                 break;
             case '2':
-                enviarTweet(cliente, fdGeneral, fdEspecifico);
+                unfollow(fdGeneral, fdEspecifico);
+                break;
+            case '3':
+                enviarTweet(fdGeneral, fdEspecifico);
                 break;
             case '0':
                 // Cierra y elimina el pipe
@@ -141,7 +148,6 @@ int main(int argc, char **argv)
                 break;
             default:
                 printf("Seleccione una de las opciones establecidas \n");
-
                 break;
             }
         } while (terminar != true);
@@ -154,7 +160,7 @@ int main(int argc, char **argv)
     return 0;
 }
 
-void realizarConexion(struct SCliente cliente, int fdGeneral, int fdEspecifico)
+void realizarConexion(int fdGeneral, int fdEspecifico)
 {
     cliente.mensaje.tipo = CONEXION;
     cliente.mensaje.conexion.status = 1;
@@ -186,11 +192,12 @@ void realizarConexion(struct SCliente cliente, int fdGeneral, int fdEspecifico)
     else
     {
         fprintf(stderr, "Respuesta del servidor\n");
-        sleep(3);
     }
 
     if (temporal.conexion.exito == 1)
     {
+        cliente.idCliente = temporal.conexion.idRetorno;
+        cliente.fd = temporal.conexion.fdRetorno;
         printf("Fue exitosa la conexion\n");
         sleep(3);
     }
@@ -199,26 +206,68 @@ void realizarConexion(struct SCliente cliente, int fdGeneral, int fdEspecifico)
         printf("Conexion fallida\n");
         sleep(3);
     }
+}
+
+void follow(int fdGeneral, int fdEspecifico)
+{
+    cliente.mensaje.tipo = SEGUIMIENTO;
+    cliente.mensaje.seguimiento.status = 1;
+    cliente.mensaje.idEmisor = cliente.idCliente;
+    cliente.mensaje.seguimiento.fdSeguir = cliente.fd;
+
+    fprintf(stderr, "Escriba el identificador del usuario que desee seguir\n");
+
+    scanf("%d", &cliente.mensaje.seguimiento.idReceptor);
+
+    write(fdGeneral, &cliente.mensaje, sizeof(cliente.mensaje));
+    printf("Solicitud enviada\n");
+    sleep(3);
+
+    struct SMensaje temporal;
+
+    int leido;
+
+    if ((leido = read(fdEspecifico, &temporal, sizeof(struct SMensaje))) < 0)
+    {
+        perror("Error");
+        exit(1);
+    }
+    else
+    {
+        fprintf(stderr, "Respuesta del servidor\n");
+        sleep(3);
+    }
+
+    if (temporal.seguimiento.exito == 1)
+    {
+        printf("Ahora estas siguiendo al usuario: %d \n", cliente.mensaje.seguimiento.idReceptor);
+        sleep(3);
+    }
+    else if (temporal.seguimiento.exito == 2)
+    {
+        printf("Ya sigues a este usuario! \n");
+        sleep(3);
+    }
+    else
+    {
+        printf("Operación de seguimiento fallida\n");
+        sleep(3);
+    }
     sleep(3);
 }
 
-void follow(struct SCliente cliente, int fdGeneral, int fdEspecifico)
+void unfollow(int fdGeneral, int fdEspecifico)
 {
     cliente.mensaje.tipo = SEGUIMIENTO;
-    strcpy(cliente.mensaje.conexion.pipeNom, cliente.pipeNom);
-    system("clear");
+    cliente.mensaje.seguimiento.status = 0;
 
-    unlink(cliente.pipeNom);
-    mkfifo(cliente.pipeNom, S_IRUSR | S_IWUSR);
-
-    printf("Escriba el identificador del usuario que desee seguir\n");
+    printf("Escriba el identificador del usuario que desee dejar de seguir\n");
     scanf("%d\n", cliente.mensaje.seguimiento.idReceptor);
     write(fdGeneral, &cliente.mensaje, sizeof(cliente.mensaje));
     printf("Solicitud enviada\n");
     sleep(3);
 }
-
-void enviarTweet(struct SCliente cliente, int fdGeneral, int fdEspecifico)
+void enviarTweet(int fdGeneral, int fdEspecifico)
 {
     // Envió del nombre del pipeEspecifico por el mensaje
     // Sigue siendo necesario la opcion de CONEXION?
