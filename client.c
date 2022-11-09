@@ -30,29 +30,63 @@ int main(int argc, char **argv)
 
     /*
      * 1. Nombre del pipe general creado por el gestor
-     * 2. Nombre de otro pipe?
+     * 2. Nombre de otro pipeEspecifico
+     * 3. Nombre del usuario
      */
     int fdGeneral;
     int fdEspecifico;
     int idSeguir;
-    fdGeneral = open(argv[1], O_WRONLY);
 
-    if (fdGeneral == -1)
-    {
-        perror("pipe: ");
-        exit(0);
-    }
-
+    int opt;
 
     struct SCliente cliente;
 
-    // Inicializamos el ID y el idEmisor del cliente con el del proceso
-    cliente.processId = (int)getpid();
-    cliente.mensaje.processIdEmisor = cliente.processId;
+    /*
+        Implementación de las flags del para la inicializarían del programa
 
-    strcpy(cliente.pipeNom, argv[2]);
+        TODO: Caso donde haga falta uno de los argumento, es decir tiene que ser los 3 obligados
 
-    strcpy(cliente.nombreUsuario, argv[3]);
+        http://www.catb.org/~esr/writings/taoup/html/ch10s05.html
+    */
+    while ((opt = getopt(argc, argv, "i:b:u:")) != -1)
+    {
+        switch (opt)
+        {
+        // Caso -o, significa que hay Buffer or block size
+        case 'b':
+            // Intenta abrir el pipe que se pasa después de la flag de -b
+            printf("PipeGeneral : %s\n", optarg);
+            fdGeneral = open(optarg, O_WRONLY);
+            if (fdGeneral == -1)
+            {
+                perror("pipe: ");
+                exit(0);
+            }
+            break;
+        // Caso -i, significa que es inicializar
+        case 'i':
+            // Inicializamos el processId y el processIdEmisor del cliente con el del proceso
+            strcpy(cliente.pipeNom, optarg);
+            cliente.processId = (int)getpid();
+            cliente.mensaje.processIdEmisor = cliente.processId;
+            printf("pipeEspecifico : %s\n", optarg);
+            break;
+        // Caso -u, significa usuario
+        case 'u':
+            strcpy(cliente.nombreUsuario, optarg);
+            printf("usuario : %s\n", optarg);
+            break;
+
+        case ':':
+            printf("La opción %d requiere un argumento\n", opt);
+            break;
+        case '?':
+            printf("unknown option: %c\n", optopt);
+            break;
+        }
+    }
+
+    sleep(2);
 
     bool terminar = false;
     char opcion;
