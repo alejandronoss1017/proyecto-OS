@@ -319,7 +319,7 @@ void atenderSeguimientoCliente()
     bool seguido = false;
     bool emisorExiste = false;
     struct SMensaje aux;
-    if (temporal.seguimiento.idReceptor > filas || temporal.seguimiento.idReceptor < filas)
+    if (temporal.seguimiento.idReceptor > filas || temporal.seguimiento.idReceptor < 0)
     {
         aux.seguimiento.exito = 0;
     }

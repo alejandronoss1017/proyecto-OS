@@ -21,23 +21,25 @@
 
 struct SCliente cliente;
 
+    /* Variables GLobales */
+    int fdGeneral;
+    int fdEspecifico;
+    
 // Declaración de la firma de las distintas funciones
-void realizarConexion(int fdGeneral, int fdEspecifico);
-void enviarTweet(int fdGeneral, int fdEspecifico);
-void follow(int fdGeneral, int fdEspecifico);
-void unfollow(int fdGeneral, int fdEspecifico);
-
-int main(int argc, char **argv)
-{
-    setlocale(LC_ALL, "");
+void realizarConexion();
+void enviarTweet();
+void follow();
+void unfollow();
 
     /*
      * 1. Nombre del pipe general creado por el gestor
      * 2. Nombre de otro pipeEspecifico
      * 3. Nombre del usuario
      */
-    int fdGeneral;
-    int fdEspecifico;
+int main(int argc, char **argv)
+{
+    setlocale(LC_ALL, "");
+
     int idSeguir;
 
     int opt;
@@ -111,7 +113,7 @@ int main(int argc, char **argv)
     scanf("%c", &opcion2);
     if (opcion2 == 's')
     {
-        realizarConexion(fdGeneral, fdEspecifico);
+        realizarConexion();
         system("clear");
         do
         {
@@ -132,13 +134,13 @@ int main(int argc, char **argv)
                 El caso de CONEXION realiza...
             */
             case '1':
-                follow(fdGeneral, fdEspecifico);
+                follow();
                 break;
             case '2':
-                unfollow(fdGeneral, fdEspecifico);
+                unfollow();
                 break;
             case '3':
-                enviarTweet(fdGeneral, fdEspecifico);
+                enviarTweet();
                 break;
             case '0':
                 // Cierra y elimina el pipe
@@ -160,7 +162,7 @@ int main(int argc, char **argv)
     return 0;
 }
 
-void realizarConexion(int fdGeneral, int fdEspecifico)
+void realizarConexion()
 {
     cliente.mensaje.tipo = CONEXION;
     cliente.mensaje.conexion.status = 1;
@@ -208,7 +210,7 @@ void realizarConexion(int fdGeneral, int fdEspecifico)
     }
 }
 
-void follow(int fdGeneral, int fdEspecifico)
+void follow()
 {
     cliente.mensaje.tipo = SEGUIMIENTO;
     cliente.mensaje.seguimiento.status = 1;
@@ -256,18 +258,52 @@ void follow(int fdGeneral, int fdEspecifico)
     sleep(3);
 }
 
-void unfollow(int fdGeneral, int fdEspecifico)
+void unfollow()
 {
     cliente.mensaje.tipo = SEGUIMIENTO;
     cliente.mensaje.seguimiento.status = 0;
 
     printf("Escriba el identificador del usuario que desee dejar de seguir\n");
-    scanf("%d\n", cliente.mensaje.seguimiento.idReceptor);
+    scanf("%d", &cliente.mensaje.seguimiento.idReceptor);
     write(fdGeneral, &cliente.mensaje, sizeof(cliente.mensaje));
     printf("Solicitud enviada\n");
     sleep(3);
+    sleep(3);
+
+    struct SMensaje temporal;
+
+    int leido;
+
+    if ((leido = read(fdEspecifico, &temporal, sizeof(struct SMensaje))) < 0)
+    {
+        perror("Error");
+        exit(1);
+    }
+    else
+    {
+        fprintf(stderr, "Respuesta del servidor\n");
+        sleep(3);
+    }
+
+    if (temporal.seguimiento.exito == 1)
+    {
+        printf("Dejaste de seguir al usuario: %d \n", cliente.mensaje.seguimiento.idReceptor);
+        sleep(3);
+    }
+    else if (temporal.seguimiento.exito == 2)
+    {
+        printf("No  sigues a este usuario! \n");
+        sleep(3);
+    }
+    else
+    {
+        printf("Operación de seguimiento fallida\n");
+        sleep(3);
+    }
+    sleep(3);
 }
-void enviarTweet(int fdGeneral, int fdEspecifico)
+
+void enviarTweet()
 {
     // Envió del nombre del pipeEspecifico por el mensaje
     // Sigue siendo necesario la opcion de CONEXION?
