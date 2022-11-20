@@ -21,26 +21,34 @@
 
 struct SCliente cliente;
 
-    /* Variables GLobales */
-    int fdGeneral;
-    int fdEspecifico;
-    
+/* Variables GLobales */
+int fdGeneral;
+int fdEspecifico;
+struct SMensaje temporal;
+char modoGestor;
+int contTweets = 0;
+
 // Declaración de la firma de las distintas funciones
 void realizarConexion();
 void enviarTweet();
 void follow();
 void unfollow();
+void leerPipeEspecifico();
+void leerRespuestaFollow();
+void leerRespuestaUnfollow();
 
-    /*
-     * 1. Nombre del pipe general creado por el gestor
-     * 2. Nombre de otro pipeEspecifico
-     * 3. Nombre del usuario
-     */
+/*
+ * 1. Nombre del pipe general creado por el gestor
+ * 2. Nombre de otro pipeEspecifico
+ * 3. Nombre del usuario
+ */
 int main(int argc, char **argv)
 {
     setlocale(LC_ALL, "");
 
     int idSeguir;
+
+    pthread_t hilo;
 
     int opt;
 
@@ -114,15 +122,23 @@ int main(int argc, char **argv)
     if (opcion2 == 's')
     {
         realizarConexion();
-        system("clear");
+        leerRespuestaConexion();
+        // Creacion del hilo
+        pthread_create(&hilo, NULL, &leerPipeEspecifico, NULL);
         do
         {
+            system("clear");
             printf("Id asignado: %d\n", cliente.idCliente);
             printf("===================================================================================== \n");
             printf("MENU SELECCIÓN DE PETICIÓN \n");
             printf("1. Follow \n");
             printf("2. Unfollow \n");
             printf("3. Tweet \n");
+            if (modoGestor == 'D')
+            {
+                printf("4. Ver Tweets por leer \n");
+            }
+
             printf("0. Salir \n");
 
             scanf(" %c", &opcion);
@@ -135,12 +151,19 @@ int main(int argc, char **argv)
             */
             case '1':
                 follow();
+                sleep(7);
                 break;
             case '2':
                 unfollow();
+                sleep(7);
                 break;
             case '3':
                 enviarTweet();
+                sleep(7);
+                break;
+            case '4':
+                verTweetsPorLeer();
+                sleep(7);
                 break;
             case '0':
                 // Cierra y elimina el pipe
@@ -173,7 +196,6 @@ void realizarConexion()
 
     write(fdGeneral, &cliente.mensaje, sizeof(cliente.mensaje));
     printf("Solicitud enviada\n");
-
     unlink(cliente.pipeNom);
     mkfifo(cliente.pipeNom, S_IRUSR | S_IWUSR);
 
@@ -182,31 +204,28 @@ void realizarConexion()
         perror("Error");
         exit(1);
     }
-    struct SMensaje temporal;
+}
 
+void leerRespuestaConexion()
+{
     int leido;
 
     if ((leido = read(fdEspecifico, &temporal, sizeof(struct SMensaje))) < 0)
     {
-        perror("Error");
+        perror("Error:");
         exit(1);
-    }
-    else
-    {
-        fprintf(stderr, "Respuesta del servidor\n");
     }
 
     if (temporal.conexion.exito == 1)
     {
+        modoGestor = temporal.conexion.modoGestor;
         cliente.idCliente = temporal.conexion.idRetorno;
         cliente.fd = temporal.conexion.fdRetorno;
         printf("Fue exitosa la conexion\n");
-        sleep(3);
     }
     else
     {
         printf("Conexion fallida\n");
-        sleep(3);
     }
 }
 
@@ -223,39 +242,22 @@ void follow()
 
     write(fdGeneral, &cliente.mensaje, sizeof(cliente.mensaje));
     printf("Solicitud enviada\n");
-    sleep(3);
+}
 
-    struct SMensaje temporal;
-
-    int leido;
-
-    if ((leido = read(fdEspecifico, &temporal, sizeof(struct SMensaje))) < 0)
-    {
-        perror("Error");
-        exit(1);
-    }
-    else
-    {
-        fprintf(stderr, "Respuesta del servidor\n");
-        sleep(3);
-    }
-
+void leerRespuestaFollow()
+{
     if (temporal.seguimiento.exito == 1)
     {
         printf("Ahora estas siguiendo al usuario: %d \n", cliente.mensaje.seguimiento.idReceptor);
-        sleep(3);
     }
     else if (temporal.seguimiento.exito == 2)
     {
         printf("Ya sigues a este usuario! \n");
-        sleep(3);
     }
     else
     {
         printf("Operación de seguimiento fallida\n");
-        sleep(3);
     }
-    sleep(3);
 }
 
 void unfollow()
@@ -263,44 +265,36 @@ void unfollow()
     cliente.mensaje.tipo = SEGUIMIENTO;
     cliente.mensaje.seguimiento.status = 0;
 
-    printf("Escriba el identificador del usuario que desee dejar de seguir\n");
-    scanf("%d", &cliente.mensaje.seguimiento.idReceptor);
-    write(fdGeneral, &cliente.mensaje, sizeof(cliente.mensaje));
-    printf("Solicitud enviada\n");
-    sleep(3);
-    sleep(3);
-
-    struct SMensaje temporal;
-
-    int leido;
-
-    if ((leido = read(fdEspecifico, &temporal, sizeof(struct SMensaje))) < 0)
-    {
-        perror("Error");
-        exit(1);
-    }
-    else
-    {
-        fprintf(stderr, "Respuesta del servidor\n");
-        sleep(3);
-    }
-
     if (temporal.seguimiento.exito == 1)
     {
         printf("Dejaste de seguir al usuario: %d \n", cliente.mensaje.seguimiento.idReceptor);
-        sleep(3);
     }
     else if (temporal.seguimiento.exito == 2)
     {
         printf("No  sigues a este usuario! \n");
-        sleep(3);
     }
     else
     {
         printf("Operación de seguimiento fallida\n");
-        sleep(3);
     }
-    sleep(3);
+}
+
+void leerRespuestaUnfollow()
+{
+    int leido;
+
+    if (temporal.seguimiento.exito == 1)
+    {
+        printf("Dejaste de seguir al usuario: %d \n", cliente.mensaje.seguimiento.idReceptor);
+    }
+    else if (temporal.seguimiento.exito == 2)
+    {
+        printf("No  sigues a este usuario! \n");
+    }
+    else
+    {
+        printf("Operación de seguimiento fallida\n");
+    }
 }
 
 void enviarTweet()
@@ -308,8 +302,8 @@ void enviarTweet()
     // Envió del nombre del pipeEspecifico por el mensaje
     // Sigue siendo necesario la opcion de CONEXION?
     cliente.mensaje.tipo = TWEET;
+    cliente.mensaje.idEmisor = cliente.idCliente;
     strcpy(cliente.mensaje.conexion.pipeNom, cliente.pipeNom);
-    system("clear");
 
     // unlink(cliente.pipeNom);
     // mkfifo(cliente.pipeNom, S_IRUSR | S_IWUSR);
@@ -319,5 +313,67 @@ void enviarTweet()
 
     write(fdGeneral, &cliente.mensaje, sizeof(cliente.mensaje));
     printf("Tweet enviado\n");
-    sleep(3);
+}
+
+void leerTweet()
+{
+    printf("Tweet de usuario: %d \n", temporal.tweet.idEmisor);
+    printf("Mensaje: \n");
+    printf("%s \n", temporal.tweet.mensaje);
+}
+
+void verTweetsPorLeer()
+{
+    if (contTweets == 0)
+    {
+        printf("NO tiene nuevos tweets por leer \n");
+    }
+
+    for (int i = 0; i < contTweets; i++)
+    {
+        printf("Tweet de usuario: %d \n", cliente.tweetsPorLeer[i].idEmisor);
+        printf("Mensaje: \n");
+        printf("%s \n", cliente.tweetsPorLeer[i].mensaje);
+    }
+}
+
+void leerPipeEspecifico()
+{
+    while (true)
+    {
+        int leido;
+        leido = read(fdEspecifico, &temporal, sizeof(struct SMensaje));
+        if (leido > 0)
+        {
+            switch (temporal.tipo)
+            {
+            case SEGUIMIENTO:
+            {
+                if (temporal.seguimiento.status == 1)
+                {
+                    leerRespuestaFollow();
+                }
+                else
+                {
+                    leerRespuestaUnfollow();
+                }
+                break;
+            }
+            case TWEET:
+            {
+                if (modoGestor == 'A')
+                {
+                    leerTweet();
+                }
+                else
+                {
+                    cliente.tweetsPorLeer[contTweets] = temporal.tweet;
+                    contTweets++;
+                }
+
+                break;
+            }
+            }
+        }
+    }
 }

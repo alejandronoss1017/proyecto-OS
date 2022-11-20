@@ -21,7 +21,7 @@
 
 int **leerMatriz(char *fileName);
 void imprimirMatriz(int **matriz);
-void leerTweet(struct SMensaje temporal);
+void leerTweet();
 void atenderConectarCliente();
 void atenderSeguimientoCliente();
 void atenderTweetCliente();
@@ -106,7 +106,7 @@ int main(int argc, char **argv)
                 atenderSeguimientoCliente();
                 break;
             case TWEET:
-                leerTweet(temporal);
+                atenderTweetCliente();
                 break;
             default:
 
@@ -116,7 +116,7 @@ int main(int argc, char **argv)
     }
 }
 
-void leerTweet(struct SMensaje temporal)
+void leerTweet()
 {
     printf("========================================================= \n");
     printf(AZUL_T "Tweet entrante del proceso ID: " RESET_COLOR AMARILLO_T "%d\n" RESET_COLOR, temporal.processIdEmisor);
@@ -255,6 +255,7 @@ void atenderConectarCliente()
     }
 
     // Si no fue encontrado, se crea nuevo usuario
+    temporal.conexion.modoGestor = gestor.modo;
     if (!encontrado)
     {
         gestor.clientes[contClientes].fd = open(temporal.conexion.pipeNom, O_WRONLY);
@@ -279,6 +280,7 @@ void atenderConectarCliente()
     {
 
         struct SMensaje aux;
+        aux.conexion.modoGestor = gestor.modo;
         // Si está conectado, no se puede crear una nueva conexion
         if (conectado)
         {
@@ -327,6 +329,7 @@ void atenderSeguimientoCliente()
     {
         if (temporal.seguimiento.status == 1)
         {
+            aux.seguimiento.status = 1;
             if (gestor.relaciones[temporal.idEmisor][temporal.seguimiento.idReceptor] == 1)
             {
                 // caso 2 de exito: cuando ya se sigue un usuario y se le avisa
@@ -340,6 +343,7 @@ void atenderSeguimientoCliente()
         }
         else
         {
+            aux.seguimiento.status = 0;
             if (gestor.relaciones[temporal.idEmisor][temporal.seguimiento.idReceptor] == 0)
             {
                 aux.seguimiento.exito = 2;
@@ -351,10 +355,28 @@ void atenderSeguimientoCliente()
             }
         }
     }
+    aux.tipo = SEGUIMIENTO;
     write(gestor.clientes[temporal.idEmisor].fd, &aux, sizeof(aux));
     printf("Respuesta enviada! \n");
 }
 
 void atenderTweetCliente()
 {
+    leerTweet();
+    printf("===========================================================\n");
+    imprimirMatriz(gestor.relaciones);
+    for (int i = 0; i < filas; i++)
+    {
+        if (gestor.relaciones[i][temporal.idEmisor] == 1)
+        {
+            struct SMensaje aux;
+            aux.idEmisor = temporal.idEmisor;
+            aux.processIdEmisor = temporal.processIdEmisor;
+            aux.tipo = TWEET;
+            aux.tweet.idEmisor = temporal.idEmisor;
+            strcpy(aux.tweet.mensaje, temporal.tweet.mensaje);
+            write(gestor.clientes[i].fd, &aux, sizeof(aux));
+            printf("Respuesta enviada al usuario %d! \n", gestor.clientes[i].idCliente);
+        }
+    }
 }

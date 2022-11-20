@@ -7,8 +7,8 @@
 
 struct STweet
 {
+    int idEmisor;
     char mensaje[200];
-
 };
 
 void imprimirInformacion(){

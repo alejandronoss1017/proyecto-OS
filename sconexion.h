@@ -12,6 +12,7 @@ struct SConexion
     int idRetorno;
     int fdRetorno;
     char pipeNom[20];
+    char modoGestor;
 };
 
 #endif // SCONEXION__H
