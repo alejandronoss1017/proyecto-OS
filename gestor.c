@@ -1,3 +1,17 @@
+/**
+ * @file gestor.c
+ * @author Camilo Nossa (calejandro_nossa@javeriana.edu.co)
+ * @author Diego Pardo (di-pardo@javeriana.edu.co)
+ * @author Sara Sierra (svalentinasierra@javeriana.edu.co)
+ *
+ * @brief
+ * @version 0.1
+ * @date 2022-11-21
+ *
+ * @copyright Copyright (c) 2022
+ *
+ */
+
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <stdlib.h>
@@ -11,13 +25,6 @@
 #include <locale.h>
 #include "scliente.h"
 
-// ./gestor
-// Parámetros:
-// 1: número de usuarios máximo
-// 2: relaciones en archivo de texto
-// 3: modo del gestor
-// 4: tiempo impresión
-// 5: nombre del pipe
 
 int **leerMatriz(char *fileName);
 void imprimirMatriz(int **matriz);
@@ -39,6 +46,18 @@ int contClientes = 0;
 struct SMensaje temporal;
 int leido;
 
+/**
+ *
+ * @brief
+ * 
+ * @param argc
+ * @param argv[1] Número de usuarios máximo
+ * @param argv[2] Relaciones en archivo de texto
+ * @param argv[3] Modo del gestor
+ * @param argv[4] Tiempo impresión
+ * @param argv[5] Nombre del pipe
+ *
+ */
 int main(int argc, char **argv)
 {
     setlocale(LC_ALL, "");
