@@ -47,10 +47,11 @@ void realizarConexion();
 void enviarTweet();
 void follow();
 void unfollow();
-void leerPipeEspecifico();
+void *leerPipeEspecifico();
 void leerRespuestaFollow();
 void leerRespuestaUnfollow();
 void imprimirMenuCliente();
+void verTweetsPorLeer();
 void desconexion();
 
 /*
@@ -122,16 +123,16 @@ int main(int argc, char **argv)
     system("clear");
 
     printf("===================================================================================== \n");
-    printf(AZUL_T "     ________  __       __  ______  ________  ________  ________  _______   \n" RESET_COLOR );
-    printf(AZUL_T "    /        |/  |  _  /  |/      |/        |/        |/        |/       \  \n" RESET_COLOR );
-    printf(AZUL_T "    $$$$$$$$/ $$ | / \ $$ |$$$$$$/ $$$$$$$$/ $$$$$$$$/ $$$$$$$$/ $$$$$$$  | \n" RESET_COLOR );
-    printf(AZUL_T "       $$ |   $$ |/$  \$$ |  $$ |     $$ |      $$ |   $$ |__    $$ |__$$ | \n" RESET_COLOR );
-    printf(AZUL_T "       $$ |   $$ /$$$  $$ |  $$ |     $$ |      $$ |   $$    |   $$    $$<  \n" RESET_COLOR );
-    printf(AZUL_T "       $$ |   $$ $$/$$ $$ |  $$ |     $$ |      $$ |   $$$$$/    $$$$$$$  | \n" RESET_COLOR );
-    printf(AZUL_T "       $$ |   $$$$/  $$$$ | _$$ |_    $$ |      $$ |   $$ |_____ $$ |  $$ | \n" RESET_COLOR );
-    printf(AZUL_T "       $$ |   $$$/    $$$ |/ $$   |   $$ |      $$ |   $$       |$$ |  $$ | \n" RESET_COLOR );
-    printf(AZUL_T "       $$/    $$/      $$/ $$$$$$/    $$/       $$/    $$$$$$$$/ $$/   $$/  \n" RESET_COLOR );
-    printf(AZUL_T "                                                                           \n" RESET_COLOR );
+    printf(AZUL_T "     ________  __       __  ______  ________  ________  ________  _______   \n" RESET_COLOR);
+    printf(AZUL_T "    /        |/  |  _  /  |/      |/        |/        |/        |/       \  \n" RESET_COLOR);
+    printf(AZUL_T "    $$$$$$$$/ $$ | / \ $$ |$$$$$$/ $$$$$$$$/ $$$$$$$$/ $$$$$$$$/ $$$$$$$  | \n" RESET_COLOR);
+    printf(AZUL_T "       $$ |   $$ |/$  \$$ |  $$ |     $$ |      $$ |   $$ |__    $$ |__$$ | \n" RESET_COLOR);
+    printf(AZUL_T "       $$ |   $$ /$$$  $$ |  $$ |     $$ |      $$ |   $$    |   $$    $$<  \n" RESET_COLOR);
+    printf(AZUL_T "       $$ |   $$ $$/$$ $$ |  $$ |     $$ |      $$ |   $$$$$/    $$$$$$$  | \n" RESET_COLOR);
+    printf(AZUL_T "       $$ |   $$$$/  $$$$ | _$$ |_    $$ |      $$ |   $$ |_____ $$ |  $$ | \n" RESET_COLOR);
+    printf(AZUL_T "       $$ |   $$$/    $$$ |/ $$   |   $$ |      $$ |   $$       |$$ |  $$ | \n" RESET_COLOR);
+    printf(AZUL_T "       $$/    $$/      $$/ $$$$$$/    $$/       $$/    $$$$$$$$/ $$/   $$/  \n" RESET_COLOR);
+    printf(AZUL_T "                                                                           \n" RESET_COLOR);
     printf("===================================================================================== \n");
     printf("Desea realizar la solicitud de conexion? (s/n)\n");
     scanf("%c", &opcion2);
@@ -173,12 +174,12 @@ int main(int argc, char **argv)
             case '0':
                 // Cierra y elimina el pipe
                 desconexion();
-                close(cliente.pipeNom);
+                close(cliente.fd);
                 unlink(cliente.pipeNom);
                 terminar = true;
 
-                //TODO: Poner funcion de desconexion para enviar el mensaje de desconexion
-                 break;
+                // TODO: Poner funcion de desconexion para enviar el mensaje de desconexion
+                break;
             default:
                 printf("Seleccione una de las opciones establecidas \n");
                 break;
@@ -213,12 +214,11 @@ void realizarConexion()
     strcpy(cliente.mensaje.conexion.pipeNom, cliente.pipeNom);
 
     // Primero el write antes del open
-
     write(fdGeneral, &cliente.mensaje, sizeof(cliente.mensaje));
     printf("Solicitud enviada\n");
+
     unlink(cliente.pipeNom);
     mkfifo(cliente.pipeNom, S_IRUSR | S_IWUSR);
-
     if ((fdEspecifico = open(cliente.pipeNom, O_RDONLY)) == -1)
     {
         perror("Error");
@@ -249,6 +249,40 @@ void leerRespuestaConexion()
         modoGestor = temporal.conexion.modoGestor;
         cliente.idCliente = temporal.conexion.idRetorno;
         cliente.fd = temporal.conexion.fdRetorno;
+        if (modoGestor == 'A')
+        {
+            if (temporal.cantTweetsPorVer != 0)
+            {
+                printf("===================================================================================== \n");
+                printf("Estos fueron los Tweets que te perdiste mientras no estabas! \n");
+            }
+
+            for (int i = 0; i < temporal.cantTweetsPorVer; i++)
+            {
+                printf("===================================================================================== \n");
+                printf("Tweet de usuario: %d \n", temporal.tweetsPorVer[i].idEmisor);
+                printf("Mensaje: \n");
+                printf("%s \n", temporal.tweetsPorVer[i].mensaje);
+                printf("\n");
+            }
+            sleep(3);
+        }
+        else
+        {
+
+            for (int i = 0; i < temporal.cantTweetsPorVer; i++)
+            {
+                cliente.tweetsPorLeer[i] = temporal.tweetsPorVer[i];
+            }
+            contTweets = temporal.cantTweetsPorVer;
+            if (temporal.cantTweetsPorVer != 0)
+            {
+                printf("===================================================================================== \n");
+                printf("Tienes Tweets por leer! \n");
+                printf("===================================================================================== \n");
+            }
+            sleep(3);
+        }
         printf(VERDE_T "Fue exitosa la conexion\n" RESET_COLOR);
     }
     /* Si no se cumplen los otros casos, la conexion es fallida*/
@@ -426,7 +460,7 @@ void verTweetsPorLeer()
 /**
 Esta función se encarga de leer las solicitudes entrantes que vienen del pipe general a a partir de un while (true) que siempre lo va revisando con respecto al HILO
 */
-void leerPipeEspecifico()
+void *leerPipeEspecifico()
 {
     while (true)
     {
@@ -500,13 +534,12 @@ void imprimirMenuCliente()
     printf(AMARILLO_T "0" RESET_COLOR ". Salir \n");
 }
 
-
-void desconexion(){
+void desconexion()
+{
     cliente.mensaje.tipo = CONEXION;
     cliente.mensaje.conexion.status = 0;
     strcpy(cliente.mensaje.nombreUsuario, cliente.nombreUsuario);
     strcpy(cliente.mensaje.conexion.pipeNom, cliente.pipeNom);
-
 
     write(fdGeneral, &cliente.mensaje, sizeof(cliente.mensaje));
 

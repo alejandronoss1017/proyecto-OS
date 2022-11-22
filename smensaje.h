@@ -17,6 +17,8 @@ struct SMensaje
     char nombreUsuario[40];
     int tipo;
     struct STweet tweet;
+    struct STweet tweetsPorVer[20];
+    int cantTweetsPorVer;
     struct Seguimiento seguimiento;
     struct SConexion conexion;
 

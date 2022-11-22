@@ -26,6 +26,8 @@
 #include <locale.h>
 #include <pthread.h>
 #include "scliente.h"
+#include <errno.h>
+extern int errno;
 
 /*
 Declaración de funciones utilizadas
@@ -38,7 +40,7 @@ void atenderConectarCliente();
 void atenderSeguimientoCliente();
 void atenderTweetCliente();
 void atenderDesconexion();
-void imprimirEstadisticas();
+void *imprimirEstadisticas();
 
 /*
     Variables globales
@@ -115,7 +117,7 @@ int main(int argc, char **argv)
     printf(AMARILLO_T "GESTOR INICIALIZADO\n" RESET_COLOR);
     printf("===========================================================\n");
     printf(CYAN_T "Cantidad máxima de usuarios: " RESET_COLOR AMARILLO_T "%d" RESET_COLOR "\n", gestor.numUsuarios);
-    printf(CYAN_T "Relaciones cargadas?: " RESET_COLOR AMARILLO_T "%s" RESET_COLOR "\n", (gestor.numUsuarios != NULL ? "Si" : "No"));
+    printf(CYAN_T "Relaciones cargadas?: " RESET_COLOR AMARILLO_T "%s" RESET_COLOR "\n", (gestor.numUsuarios != 0 ? "Si" : "No"));
     printf(CYAN_T "Modo del gestor: " RESET_COLOR AMARILLO_T "%c" RESET_COLOR "\n", gestor.modo);
     printf(CYAN_T "Tiempo de impresión: " RESET_COLOR AMARILLO_T "%d" RESET_COLOR "\n", gestor.tiempo);
     printf(CYAN_T "Nombre del pipe del gestor: " RESET_COLOR AMARILLO_T "%s" RESET_COLOR "\n", gestor.pipeNom);
@@ -338,14 +340,18 @@ void atenderConectarCliente()
     temporal.conexion.modoGestor = gestor.modo;
     if (!encontrado)
     {
+        sleep(2);
         gestor.clientes[contClientes].fd = open(temporal.conexion.pipeNom, O_WRONLY);
+        printf("El fd es: %d \n", gestor.clientes[contClientes].fd);
         if (gestor.clientes[contClientes].fd < 0)
         {
+            printf("Error Number % d\n", errno);
             perror("Error");
         }
         // se le asigna el contador de clientes a la pos actual del contador (es decir, en el orden en el que se van creando)
         gestor.clientes[contClientes].idCliente = contClientes;
         gestor.clientes[contClientes].conectado = true;
+        gestor.clientes[contClientes].cantTweetsPorLeer = 0;
         numClientesConectado++;
         strcpy(gestor.clientes[contClientes].mensaje.conexion.pipeNom, temporal.conexion.pipeNom);
         strcpy(gestor.clientes[contClientes].nombreUsuario, temporal.nombreUsuario);
@@ -367,6 +373,7 @@ void atenderConectarCliente()
         // Si está conectado, no se puede crear una nueva conexion
         if (conectado)
         {
+            sleep(2);
             gestor.clientes[contClientes].fd = open(temporal.conexion.pipeNom, O_WRONLY);
             if (gestor.clientes[contClientes].fd < 0)
             {
@@ -381,6 +388,7 @@ void atenderConectarCliente()
         // Si no está conectado, se crea una nueva conexion con un nombre de usuario ya existente
         else
         {
+            sleep(2);
             gestor.clientes[idEncontrado].fd = open(temporal.conexion.pipeNom, O_WRONLY);
             if (gestor.clientes[idEncontrado].fd < 0)
             {
@@ -390,6 +398,13 @@ void atenderConectarCliente()
             aux.conexion.exito = 1;
             aux.conexion.idRetorno = idEncontrado;
             aux.conexion.fdRetorno = gestor.clientes[idEncontrado].fd;
+            aux.cantTweetsPorVer = 0;
+            if(gestor.clientes[idEncontrado].cantTweetsPorLeer != 0){
+               for(int i = 0; i < gestor.clientes[idEncontrado].cantTweetsPorLeer; i++){
+                    aux.tweetsPorVer[i] = gestor.clientes[idEncontrado].tweetsPorLeer[i];
+                    aux.cantTweetsPorVer++;
+               }
+            }
             write(gestor.clientes[idEncontrado].fd, &aux, sizeof(aux));
             printf("Respuesta enviada! \n");
         }
@@ -404,7 +419,7 @@ void atenderDesconexion()
 
     for (int i = 0; i < gestor.numUsuarios; i++)
     {
-        if (strcmp(gestor.clientes[i].nombreUsuario, temporal.nombreUsuario))
+        if (strcmp(gestor.clientes[i].nombreUsuario, temporal.nombreUsuario) == 0)
         {
             gestor.clientes[i].conectado = 0;
             numClientesConectado--;
@@ -479,6 +494,7 @@ void atenderTweetCliente()
     imprimirMatriz(gestor.relaciones);
 
     // recorre todos id de los clientes (filas)
+
     for (int i = 0; i < filas; i++)
     {
         if (gestor.relaciones[i][temporal.idEmisor] == 1)
@@ -489,8 +505,17 @@ void atenderTweetCliente()
             aux.tipo = TWEET;
             aux.tweet.idEmisor = temporal.idEmisor;
             strcpy(aux.tweet.mensaje, temporal.tweet.mensaje);
-            write(gestor.clientes[i].fd, &aux, sizeof(aux));
-            printf("Respuesta enviada al usuario %d! \n", gestor.clientes[i].idCliente);
+            if (gestor.clientes[i].conectado == 1)
+            {
+                write(gestor.clientes[i].fd, &aux, sizeof(aux));
+                printf("Respuesta enviada al usuario %d! \n", gestor.clientes[i].idCliente);
+            }
+            else
+            {
+                gestor.clientes[i].tweetsPorLeer[gestor.clientes[i].cantTweetsPorLeer].idEmisor = aux.tweet.idEmisor;
+                strcpy(gestor.clientes[i].tweetsPorLeer[gestor.clientes[i].cantTweetsPorLeer].mensaje, aux.tweet.mensaje);
+                gestor.clientes[i].cantTweetsPorLeer++;
+            }
             numTweetsEnviados++;
         }
     }
@@ -499,7 +524,7 @@ void atenderTweetCliente()
 /**
 Función que imprime las estadisticas a partir de un hilo
 */
-void imprimirEstadisticas()
+void *imprimirEstadisticas()
 {
     while (true)
     {

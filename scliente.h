@@ -17,6 +17,7 @@ struct SCliente
     int fd;
     char nombreUsuario[40];
     char pipeNom[20];
+    int cantTweetsPorLeer;
     struct STweet tweetsPorLeer[20];
     struct SMensaje mensaje;
 };
