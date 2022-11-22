@@ -14,6 +14,7 @@
 
 #include <sys/types.h>
 #include <sys/stat.h>
+#include <signal.h>
 #include <stdlib.h>
 #include <fcntl.h>
 #include <stdio.h>
@@ -23,8 +24,12 @@
 #include <fcntl.h>
 #include "colors.h"
 #include <locale.h>
+#include <pthread.h>
 #include "scliente.h"
 
+/*
+Declaración de funciones utilizadas
+*/
 
 int **leerMatriz(char *fileName);
 void imprimirMatriz(int **matriz);
@@ -32,12 +37,13 @@ void leerTweet();
 void atenderConectarCliente();
 void atenderSeguimientoCliente();
 void atenderTweetCliente();
+void atenderDesconexion();
+void imprimirEstadisticas();
 
 /*
     Variables globales
 */
 
-// Creamos la estructura gestor
 struct SGestor gestor;
 int filas = 0;
 int columnas = 0;
@@ -46,10 +52,15 @@ int contClientes = 0;
 struct SMensaje temporal;
 int leido;
 
+/* Variables para las estadisticas */
+int numClientesConectado;
+int numTweetsEnviados;
+int numTweetsRecibidos;
+
 /**
  *
  * @brief
- * 
+ *
  * @param argc
  * @param argv[1] Número de usuarios máximo
  * @param argv[2] Relaciones en archivo de texto
@@ -60,12 +71,18 @@ int leido;
  */
 int main(int argc, char **argv)
 {
+    pthread_t hilo;
+
+    // Funcion utilizada para poder escribir caracteres especiales en consola
     setlocale(LC_ALL, "");
+
+    // Modo de escritura y lectura del pipe
     mode_t fifo_mode = S_IRUSR | S_IWUSR;
 
     // 1. Inicializamos num máximo de usuarios
     gestor.numUsuarios = atoi(argv[1]);
     strcpy(gestor.pipeNom, argv[5]);
+
     // 2. Inicializamos relaciones del sistema
     gestor.relaciones = leerMatriz(argv[2]);
 
@@ -73,7 +90,7 @@ int main(int argc, char **argv)
     gestor.modo = *argv[3];
 
     // 4. Inicializamos tiempo de impresión
-    gestor.tiempo = atof(argv[4]);
+    gestor.tiempo = atoi(argv[4]);
 
     // 5. Inicializamos el pipe general
 
@@ -84,7 +101,7 @@ int main(int argc, char **argv)
         exit(1);
     }
 
-    // para empezar a atender solicitudes se necesita abrir el pipe
+    // para empezar a atender solicitudes se necesita abrir el pipe unicamente de
     int fdGeneral = open(gestor.pipeNom, O_RDONLY);
     if (fdGeneral == -1)
     {
@@ -92,26 +109,48 @@ int main(int argc, char **argv)
         exit(0);
     }
 
+    // Instaciacion del manejador para imprimir las estadisticas
+
+    // Se imprime la información del gestor inicializado junto con las relaciones del gestor
     printf(AMARILLO_T "GESTOR INICIALIZADO\n" RESET_COLOR);
     printf("===========================================================\n");
     printf(CYAN_T "Cantidad máxima de usuarios: " RESET_COLOR AMARILLO_T "%d" RESET_COLOR "\n", gestor.numUsuarios);
     printf(CYAN_T "Relaciones cargadas?: " RESET_COLOR AMARILLO_T "%s" RESET_COLOR "\n", (gestor.numUsuarios != NULL ? "Si" : "No"));
     printf(CYAN_T "Modo del gestor: " RESET_COLOR AMARILLO_T "%c" RESET_COLOR "\n", gestor.modo);
-    printf(CYAN_T "Tiempo de impresión: " RESET_COLOR AMARILLO_T "%f" RESET_COLOR "\n", gestor.tiempo);
+    printf(CYAN_T "Tiempo de impresión: " RESET_COLOR AMARILLO_T "%d" RESET_COLOR "\n", gestor.tiempo);
     printf(CYAN_T "Nombre del pipe del gestor: " RESET_COLOR AMARILLO_T "%s" RESET_COLOR "\n", gestor.pipeNom);
     printf("===========================================================\n");
     imprimirMatriz(gestor.relaciones);
 
+    // Creacion del hilo
+
+    pthread_create(&hilo, NULL, &imprimirEstadisticas, NULL);
     // Lectura de pipe
+
+    /*
+        Este while (true) representa una lectura constante del pipe general para revisar los mensajes que son enviados por cada cliente al gestor
+    */
     while (true)
     {
+
         if ((leido = read(fdGeneral, &temporal, sizeof(struct SMensaje))) > 0)
+        // si la lectura del pipe es exitosa...
         {
             switch (temporal.tipo)
             {
+                // si el tipo del mensaje Temporal es de CONEXION se llama la función
             case CONEXION:
-                atenderConectarCliente();
+                if (temporal.conexion.status == 0)
+                {
+                    atenderDesconexion();
+                }
+                else
+                {
+                    atenderConectarCliente();
+                }
                 break;
+
+                // si el tipo del mensaje Temporal es de CONEXION se llama la función
             case SEGUIMIENTO:
                 /*
                 1. se recorre la matriz de seguimiento del cliente
@@ -124,8 +163,15 @@ int main(int argc, char **argv)
                 */
                 atenderSeguimientoCliente();
                 break;
+
+            // si el tipo del mensaje Temporal es de CONEXION se llama la función
             case TWEET:
+                numTweetsRecibidos++;
                 atenderTweetCliente();
+                break;
+
+            case '0':
+                // TODO: LEER LA DESCONEXION Y RESTAR EL CONTADOR
                 break;
             default:
 
@@ -135,6 +181,9 @@ int main(int argc, char **argv)
     }
 }
 
+/**
+ *Esta función imprime por pantalla el tweet mandado por el emisor
+ */
 void leerTweet()
 {
     printf("========================================================= \n");
@@ -143,6 +192,9 @@ void leerTweet()
     printf(VERDE_T "%s" RESET_COLOR, temporal.tweet.mensaje);
 }
 
+/**
+ *Esta función se encarga de la impresión de la matriz de relaciones a partir de la lectura de un archivo
+ */
 int **leerMatriz(char *fileName)
 {
     FILE *fp = fopen(fileName, "r");
@@ -229,25 +281,32 @@ void imprimirMatriz(int **matriz)
     }
 }
 
+/**
+ *Esta función atiende las peticiones de conexion, provenientes del los mensajes enviados por los clientes a través del pipe general
+ */
 void atenderConectarCliente()
 {
     printf("===========================================================\n");
     fprintf(stderr, MAGENTA_T "Solicitud de conexión entrante del proceso ID:" RESET_COLOR AMARILLO_T " %d \n" RESET_COLOR, temporal.processIdEmisor);
     // fprintf(stderr, "%d\n", temporal.tipo);
     fprintf(stderr, MAGENTA_T "Nombre del pipe: " RESET_COLOR AMARILLO_T "%s\n" RESET_COLOR, temporal.conexion.pipeNom);
+
     bool encontrado = false;
     bool conectado = false;
     int idEncontrado;
+
+    // Se busca si ya existe en nombre de usuario de los clientes con el que actualmente está realizando la conexión
     for (int i = 0; i < contClientes; i++)
     {
         if (strcmp(gestor.clientes[i].nombreUsuario, temporal.nombreUsuario) == 0)
         {
             encontrado = true;
+            // se obtiene la posición dentro de los clientes donde esta almacenado este usuario
             idEncontrado = i;
-            if (gestor.clientes[i].conectado)
-            {
-                conectado = true;
-            }
+
+            // se asigna a conectado el cliente
+            gestor.clientes[i].conectado = true;
+            numClientesConectado++;
         }
     }
 
@@ -274,6 +333,8 @@ void atenderConectarCliente()
     }
 
     // Si no fue encontrado, se crea nuevo usuario
+
+    // se le asigna el modo acoplado o no acoplada
     temporal.conexion.modoGestor = gestor.modo;
     if (!encontrado)
     {
@@ -282,10 +343,13 @@ void atenderConectarCliente()
         {
             perror("Error");
         }
-
+        // se le asigna el contador de clientes a la pos actual del contador (es decir, en el orden en el que se van creando)
         gestor.clientes[contClientes].idCliente = contClientes;
+        gestor.clientes[contClientes].conectado = true;
+        numClientesConectado++;
         strcpy(gestor.clientes[contClientes].mensaje.conexion.pipeNom, temporal.conexion.pipeNom);
         strcpy(gestor.clientes[contClientes].nombreUsuario, temporal.nombreUsuario);
+
         // Se verifica exitoso el registro con 1, si ya fue registrado con 0
         temporal.conexion.exito = 1;
         temporal.conexion.idRetorno = contClientes;
@@ -332,6 +396,26 @@ void atenderConectarCliente()
     }
 }
 
+void atenderDesconexion()
+{
+    printf("===========================================================\n");
+    fprintf(stderr, MAGENTA_T "Solicitud de desconexión entrante del proceso ID:" RESET_COLOR AMARILLO_T " %d \n" RESET_COLOR, temporal.processIdEmisor);
+    fprintf(stderr, MAGENTA_T "Nombre del pipe: " RESET_COLOR AMARILLO_T "%s\n" RESET_COLOR, temporal.conexion.pipeNom);
+
+    for (int i = 0; i < gestor.numUsuarios; i++)
+    {
+        if (strcmp(gestor.clientes[i].nombreUsuario, temporal.nombreUsuario))
+        {
+            gestor.clientes[i].conectado = 0;
+            numClientesConectado--;
+            break;
+        }
+    }
+}
+
+/**
+Esta función atiende los mensajes de tipo SEGUIMIENTO que son eviados de los clientes al gestor por el pipe general
+*/
 void atenderSeguimientoCliente()
 {
     printf("===========================================================\n");
@@ -340,12 +424,15 @@ void atenderSeguimientoCliente()
     bool seguido = false;
     bool emisorExiste = false;
     struct SMensaje aux;
+
+    // Mirar que no se excedan los limites de la matriz y que exita más de 1, si esto sucede, el seguimiento es fallido
     if (temporal.seguimiento.idReceptor > filas || temporal.seguimiento.idReceptor < 0)
     {
         aux.seguimiento.exito = 0;
     }
     else
     {
+        // Opcion de follow
         if (temporal.seguimiento.status == 1)
         {
             aux.seguimiento.status = 1;
@@ -362,9 +449,11 @@ void atenderSeguimientoCliente()
         }
         else
         {
+            // Opcion de unfollow
             aux.seguimiento.status = 0;
             if (gestor.relaciones[temporal.idEmisor][temporal.seguimiento.idReceptor] == 0)
             {
+                // caso 2 de exito: cuando ya se no sigue un usuario y se le avisa
                 aux.seguimiento.exito = 2;
             }
             else
@@ -375,15 +464,21 @@ void atenderSeguimientoCliente()
         }
     }
     aux.tipo = SEGUIMIENTO;
+    // se envia la respeusta de seguimiento al pipe especifico del cliente
     write(gestor.clientes[temporal.idEmisor].fd, &aux, sizeof(aux));
     printf("Respuesta enviada! \n");
 }
 
+/**
+ * Esta función se encarga de recibir un mensaje de tipo TWEET, revisando a partir de la lectura de la matriz , verificando si los seguidores del emisor del tweet
+ */
 void atenderTweetCliente()
 {
     leerTweet();
     printf("===========================================================\n");
     imprimirMatriz(gestor.relaciones);
+
+    // recorre todos id de los clientes (filas)
     for (int i = 0; i < filas; i++)
     {
         if (gestor.relaciones[i][temporal.idEmisor] == 1)
@@ -396,6 +491,23 @@ void atenderTweetCliente()
             strcpy(aux.tweet.mensaje, temporal.tweet.mensaje);
             write(gestor.clientes[i].fd, &aux, sizeof(aux));
             printf("Respuesta enviada al usuario %d! \n", gestor.clientes[i].idCliente);
+            numTweetsEnviados++;
         }
+    }
+}
+
+/**
+Función que imprime las estadisticas a partir de un hilo
+*/
+void imprimirEstadisticas()
+{
+    while (true)
+    {
+        printf("=================================================\n");
+        printf("Estadisticas Geniales \n");
+        printf("Numero de usuarios conectados: %d \n", numClientesConectado);
+        printf("Numero de tweets recibidos: %d \n", numTweetsRecibidos);
+        printf("Numero de tweets enviados: %d \n", numTweetsEnviados);
+        sleep(gestor.tiempo);
     }
 }

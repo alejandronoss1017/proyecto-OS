@@ -1,5 +1,5 @@
 /**
- * @file gestor.c
+ * @file client.c
  * @author Camilo Nossa (calejandro_nossa@javeriana.edu.co)
  * @author Diego Pardo (di-pardo@javeriana.edu.co)
  * @author Sara Sierra (svalentinasierra@javeriana.edu.co)
@@ -18,7 +18,6 @@
 #include <fcntl.h>
 #include <stdio.h>
 #include <string.h>
-#include <pthread.h>
 #include "scliente.h"
 #include <stdio.h>
 #include <stdlib.h>
@@ -51,6 +50,8 @@ void unfollow();
 void leerPipeEspecifico();
 void leerRespuestaFollow();
 void leerRespuestaUnfollow();
+void imprimirMenuCliente();
+void desconexion();
 
 /*
  * 1. Nombre del pipe general creado por el gestor
@@ -121,16 +122,16 @@ int main(int argc, char **argv)
     system("clear");
 
     printf("===================================================================================== \n");
-    printf(AZUL_T "     ________  __       __  ______  ________  ________  ________  _______   \n" RESET_COLOR);
-    printf(AZUL_T "    /        |/  |  _  /  |/      |/        |/        |/        |/       \  \n" RESET_COLOR);
-    printf(AZUL_T "    $$$$$$$$/ $$ | / \ $$ |$$$$$$/ $$$$$$$$/ $$$$$$$$/ $$$$$$$$/ $$$$$$$  | \n" RESET_COLOR);
-    printf(AZUL_T "       $$ |   $$ |/$  \$$ |  $$ |     $$ |      $$ |   $$ |__    $$ |__$$ | \n" RESET_COLOR);
-    printf(AZUL_T "       $$ |   $$ /$$$  $$ |  $$ |     $$ |      $$ |   $$    |   $$    $$<  \n" RESET_COLOR);
-    printf(AZUL_T "       $$ |   $$ $$/$$ $$ |  $$ |     $$ |      $$ |   $$$$$/    $$$$$$$  | \n" RESET_COLOR);
-    printf(AZUL_T "       $$ |   $$$$/  $$$$ | _$$ |_    $$ |      $$ |   $$ |_____ $$ |  $$ | \n" RESET_COLOR);
-    printf(AZUL_T "       $$ |   $$$/    $$$ |/ $$   |   $$ |      $$ |   $$       |$$ |  $$ | \n" RESET_COLOR);
-    printf(AZUL_T "       $$/    $$/      $$/ $$$$$$/    $$/       $$/    $$$$$$$$/ $$/   $$/  \n" RESET_COLOR);
-    printf(AZUL_T "                                                                           \n" RESET_COLOR);
+    printf(AZUL_T "     ________  __       __  ______  ________  ________  ________  _______   \n" RESET_COLOR );
+    printf(AZUL_T "    /        |/  |  _  /  |/      |/        |/        |/        |/       \  \n" RESET_COLOR );
+    printf(AZUL_T "    $$$$$$$$/ $$ | / \ $$ |$$$$$$/ $$$$$$$$/ $$$$$$$$/ $$$$$$$$/ $$$$$$$  | \n" RESET_COLOR );
+    printf(AZUL_T "       $$ |   $$ |/$  \$$ |  $$ |     $$ |      $$ |   $$ |__    $$ |__$$ | \n" RESET_COLOR );
+    printf(AZUL_T "       $$ |   $$ /$$$  $$ |  $$ |     $$ |      $$ |   $$    |   $$    $$<  \n" RESET_COLOR );
+    printf(AZUL_T "       $$ |   $$ $$/$$ $$ |  $$ |     $$ |      $$ |   $$$$$/    $$$$$$$  | \n" RESET_COLOR );
+    printf(AZUL_T "       $$ |   $$$$/  $$$$ | _$$ |_    $$ |      $$ |   $$ |_____ $$ |  $$ | \n" RESET_COLOR );
+    printf(AZUL_T "       $$ |   $$$/    $$$ |/ $$   |   $$ |      $$ |   $$       |$$ |  $$ | \n" RESET_COLOR );
+    printf(AZUL_T "       $$/    $$/      $$/ $$$$$$/    $$/       $$/    $$$$$$$$/ $$/   $$/  \n" RESET_COLOR );
+    printf(AZUL_T "                                                                           \n" RESET_COLOR );
     printf("===================================================================================== \n");
     printf("Desea realizar la solicitud de conexion? (s/n)\n");
     scanf("%c", &opcion2);
@@ -142,20 +143,7 @@ int main(int argc, char **argv)
         pthread_create(&hilo, NULL, &leerPipeEspecifico, NULL);
         do
         {
-            system("clear");
-            printf("Id asignado: %d\n", cliente.idCliente);
-            printf("===================================================================================== \n");
-            printf("MENU SELECCIÓN DE PETICIÓN \n");
-            printf("1. Follow \n");
-            printf("2. Unfollow \n");
-            printf("3. Tweet \n");
-            if (modoGestor == 'D')
-            {
-                printf("4. Ver Tweets por leer \n");
-            }
-
-            printf("0. Salir \n");
-
+            imprimirMenuCliente();
             scanf(" %c", &opcion);
             fgetc(stdin);
 
@@ -184,10 +172,13 @@ int main(int argc, char **argv)
                 break;
             case '0':
                 // Cierra y elimina el pipe
+                desconexion();
                 close(cliente.pipeNom);
                 unlink(cliente.pipeNom);
                 terminar = true;
-                break;
+
+                //TODO: Poner funcion de desconexion para enviar el mensaje de desconexion
+                 break;
             default:
                 printf("Seleccione una de las opciones establecidas \n");
                 break;
@@ -236,15 +227,12 @@ void realizarConexion()
 }
 
 /**
- * Esta funcion
- *
+ * Esta función se encarga de leer la respuesta del mensaje tipo CONEXION que viene del gestor (estructura temporal) al pipe específico
  */
 void leerRespuestaConexion()
 {
     int leido;
-    /*
-        Esta función se encarga de leer la respuesta del mensaje tipo CONEXION que viene del gestor (estructura temporal) al pipe específico
-    */
+
     if ((leido = read(fdEspecifico, &temporal, sizeof(struct SMensaje))) < 0)
     {
         perror("Error:");
@@ -261,7 +249,7 @@ void leerRespuestaConexion()
         modoGestor = temporal.conexion.modoGestor;
         cliente.idCliente = temporal.conexion.idRetorno;
         cliente.fd = temporal.conexion.fdRetorno;
-        printf("Fue exitosa la conexion\n");
+        printf(VERDE_T "Fue exitosa la conexion\n" RESET_COLOR);
     }
     /* Si no se cumplen los otros casos, la conexion es fallida*/
     else
@@ -270,10 +258,11 @@ void leerRespuestaConexion()
     }
 }
 
+/**
+ * Esta funcion define los aspectos principales que se pasaran por el pipe general al gestor en el mensaje de tipo SEGUIMIENTO*
+ */
 void follow()
 {
-    /* Esta funcion define los aspectos principales que se pasaran por el pipe general al gestor en el mensaje de tipo SEGUIMIENTO*/
-
     /*Define de que tipo es el mensaje*/
     cliente.mensaje.tipo = SEGUIMIENTO;
 
@@ -298,17 +287,16 @@ void follow()
     printf("Solicitud enviada\n");
 }
 
+/**
+ * Esta función define los aspectos principales que se pasaran por el pipe general al gestor en el mensaje de tipo SEGUIMIENTO
+ * Se define que si bien la solicitud es de tipo SEGUMIENTO, el status que se realizara es de UNFOLLOW
+ */
 void unfollow()
 {
-    /*Esta funcion define los aspectos principales que se pasaran por el pipe general al gestor en el mensaje de tipo SEGUIMIENTO* */
-
-    /* Se define que si bien la solicitud es de tipo SEGUMIENTO, el status que se realizara es de UNFOLLOW*/
-
     cliente.mensaje.tipo = SEGUIMIENTO;
 
     cliente.mensaje.seguimiento.status = 0;
 
-    //?
     cliente.mensaje.idEmisor = cliente.idCliente;
 
     printf("Escriba el identificador del usuario que desee dejar de seguir\n");
@@ -320,11 +308,11 @@ void unfollow()
     printf("Solicitud enviada\n");
 }
 
+/**
+ *Esta función se encarga de leer la respuesta del mensaje tipo SEGUIMIENTO (follow) que viene del gestor(del pipe general) al pipe específico
+ */
 void leerRespuestaFollow()
 {
-    /*
-    Esta función se encarga de leer la respuesta del mensaje tipo SEGUIMIENTO (follow) que viene del gestor por el pipe específico
-    */
 
     // Si el exito es 1, quiere decir que el usuario emisor ya sigue al usuario receptor
     if (temporal.seguimiento.exito == 1)
@@ -341,17 +329,16 @@ void leerRespuestaFollow()
     // Si el exito difiere de 1 o 2, quiere decir que la operación fue fallida
     else
     {
-        printf("Operación de seguimiento fallida\n");
+        printf(ROJO_T "Operación de seguimiento fallida\n" RESET_COLOR);
     }
 }
 
+/**
+Esta función se encarga de leer la respuesta del mensaje tipo SEGUIMIENTO (unfollow) que viene del gestor (por el pipel general) al pipe específico
+*/
 void leerRespuestaUnfollow()
 {
     int leido;
-
-    /*
-    Esta función se encarga de leer la respuesta del mensaje tipo SEGUIMIENTO (unfollow) que viene del gestor por el pipe específico
-    */
 
     /*Se especifica que el tipo de tipo del mensaje es de tipo SEGUIMIENTO  */
     cliente.mensaje.tipo = SEGUIMIENTO;
@@ -370,13 +357,15 @@ void leerRespuestaUnfollow()
     else
     // Si el exito difiere de 1 o 2, quiere decir que la operación fue fallida
     {
-        printf("Operación de seguimiento fallida\n");
+        printf(ROJO_T "Operación de seguimiento fallida\n" RESET_COLOR);
     }
 }
 
+/**
+ *Esta funcion define los aspectos principales que se pasaran por el pipe general al gestor en el mensaje de tipo TWEET
+ */
 void enviarTweet()
 {
-    /*Esta funcion define los aspectos principales que se pasaran por el pipe general al gestor en el mensaje de tipo TWEET* */
 
     cliente.mensaje.tipo = TWEET;
 
@@ -391,22 +380,33 @@ void enviarTweet()
     printf("Escriba su tweet a continuación:\n");
     fgets(cliente.mensaje.tweet.mensaje, 200, stdin);
 
-    // se escribe el mensaje o se envia al pipe general
+    // se escribe el mensaje o se envía al pipe general
     write(fdGeneral, &cliente.mensaje, sizeof(cliente.mensaje));
     printf("Tweet enviado\n");
 }
 
+/**
+ *Esta función se encarga de mostrarle al usuario el tweet a leer
+ */
 void leerTweet()
 {
-    /* Esta función se encarga de mostrarle al usuario el tweet a leer*/
+    system("clear");
+    printf("\n");
+    printf("===================================================================================== \n");
     printf("Tweet de usuario: %d \n", temporal.tweet.idEmisor);
     printf("Mensaje: \n");
     printf("%s \n", temporal.tweet.mensaje);
+    printf("\n");
+    printf("===================================================================================== \n");
+    sleep(3);
+    imprimirMenuCliente();
 }
 
+/**
+ *Esta función revisa si existen tweets por leer, cuando el gestor se inicializa en modo desacoplado
+ */
 void verTweetsPorLeer()
 {
-    /* Esta función revisa si existen tweets por leer, cuando el gestor se inicializa en modo desacoplado*/
 
     // si el conteo de tweets está en 0, se le avisa al cliente que no tiene nuevos tweets por leer
     if (contTweets == 0)
@@ -417,18 +417,17 @@ void verTweetsPorLeer()
     // si no , se recorre el arreglo de tweets por leer, mostrando el emisor del tweet y el mensaje correspondiente
     for (int i = 0; i < contTweets; i++)
     {
-        printf("\n");
-        printf("===================================================================================== \n");
         printf("Tweet de usuario: %d \n", cliente.tweetsPorLeer[i].idEmisor);
         printf("Mensaje: \n");
         printf("%s \n", cliente.tweetsPorLeer[i].mensaje);
     }
 }
 
+/**
+Esta función se encarga de leer las solicitudes entrantes que vienen del pipe general a a partir de un while (true) que siempre lo va revisando con respecto al HILO
+*/
 void leerPipeEspecifico()
 {
-    /* Esta función se encarga de leer las solicitudes entrantes que vienen del pipe general a a partir de un while (true) que siempre lo va revisando con respecto al HILO*/
-
     while (true)
     {
         int leido;
@@ -445,7 +444,7 @@ void leerPipeEspecifico()
                 // si el mensaje temporal es de tipo SEGUIMIENTO
             case SEGUIMIENTO:
             {
-                // si es de tipo follow, se lee llama la funcion
+                // si es de tipo follow, se lee llama la función
                 if (temporal.seguimiento.status == 1)
                 {
                     leerRespuestaFollow();
@@ -478,4 +477,38 @@ void leerPipeEspecifico()
             }
         }
     }
+}
+
+void imprimirMenuCliente()
+{
+    system("clear");
+    printf(VERDE_T "Su " RESET_COLOR AMARILLO_T "ID " RESET_COLOR VERDE_T "asignado es: " RESET_COLOR AMARILLO_T "%d\n" RESET_COLOR, cliente.idCliente);
+    printf("===================================================================================== \n");
+    printf(AZUL_T "MENU SELECCIÓN DE PETICIÓN \n" RESET_COLOR);
+    printf(AMARILLO_T "1" RESET_COLOR
+                      ". Follow \n");
+    printf(AMARILLO_T "2" RESET_COLOR
+                      ". Unfollow \n");
+    printf(AMARILLO_T "3" RESET_COLOR
+                      ". Tweet \n");
+    if (modoGestor == 'D')
+    {
+        printf(AMARILLO_T "4" RESET_COLOR
+                          ". Ver Tweets por leer \n");
+    }
+
+    printf(AMARILLO_T "0" RESET_COLOR ". Salir \n");
+}
+
+
+void desconexion(){
+    cliente.mensaje.tipo = CONEXION;
+    cliente.mensaje.conexion.status = 0;
+    strcpy(cliente.mensaje.nombreUsuario, cliente.nombreUsuario);
+    strcpy(cliente.mensaje.conexion.pipeNom, cliente.pipeNom);
+
+
+    write(fdGeneral, &cliente.mensaje, sizeof(cliente.mensaje));
+
+    printf("Solicitud de desconexion enviada\n");
 }
