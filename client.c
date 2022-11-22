@@ -134,7 +134,7 @@ int main(int argc, char **argv)
     printf(AZUL_T "       $$/    $$/      $$/ $$$$$$/    $$/       $$/    $$$$$$$$/ $$/   $$/  \n" RESET_COLOR);
     printf(AZUL_T "                                                                           \n" RESET_COLOR);
     printf("===================================================================================== \n");
-    printf("Desea realizar la solicitud de conexion? (s/n)\n");
+    printf(MAGENTA_T "Desea realizar la solicitud de conexion? " AMARILLO_T "(s/n)\n" RESET_COLOR);
     scanf("%c", &opcion2);
     if (opcion2 == 's')
     {
@@ -188,7 +188,7 @@ int main(int argc, char **argv)
     }
     else
     {
-        printf("No se puede realizar ninguna solicitud, buen dia. \n");
+        printf(ROJO_T "No se puede realizar ninguna solicitud, buen dia. \n" RESET_COLOR);
     }
 
     return 0;
@@ -215,7 +215,7 @@ void realizarConexion()
 
     // Primero el write antes del open
     write(fdGeneral, &cliente.mensaje, sizeof(cliente.mensaje));
-    printf("Solicitud enviada\n");
+    printf(AMARILLO_T "Solicitud enviada\n" RESET_COLOR);
 
     unlink(cliente.pipeNom);
     mkfifo(cliente.pipeNom, S_IRUSR | S_IWUSR);
@@ -254,14 +254,14 @@ void leerRespuestaConexion()
             if (temporal.cantTweetsPorVer != 0)
             {
                 printf("===================================================================================== \n");
-                printf("Estos fueron los Tweets que te perdiste mientras no estabas! \n");
+                printf(MAGENTA_T "\t Estos fueron los Tweets que te perdiste mientras no estabas! \n" RESET_COLOR);
             }
 
             for (int i = 0; i < temporal.cantTweetsPorVer; i++)
             {
                 printf("===================================================================================== \n");
-                printf("Tweet de usuario: %d \n", temporal.tweetsPorVer[i].idEmisor);
-                printf("Mensaje: \n");
+                printf(MAGENTA_T "Tweet de usuario: " RESET_COLOR AMARILLO_T "%d \n" RESET_COLOR, temporal.tweetsPorVer[i].idEmisor);
+                printf(VERDE_T "Mensaje: \n" RESET_COLOR);
                 printf("%s \n", temporal.tweetsPorVer[i].mensaje);
                 printf("\n");
             }
@@ -278,7 +278,7 @@ void leerRespuestaConexion()
             if (temporal.cantTweetsPorVer != 0)
             {
                 printf("===================================================================================== \n");
-                printf("Tienes Tweets por leer! \n");
+                printf(MAGENTA_T "\t Tienes Tweets por leer! \n" RESET_COLOR);
                 printf("===================================================================================== \n");
             }
             sleep(3);
@@ -288,7 +288,7 @@ void leerRespuestaConexion()
     /* Si no se cumplen los otros casos, la conexion es fallida*/
     else
     {
-        printf("Conexion fallida\n");
+        printf(ROJO_T "Conexion fallida\n" RESET_COLOR);
     }
 }
 
@@ -309,7 +309,7 @@ void follow()
     /* Se define para el seguimiento su fileDescriptor, el del cliente que lo envía*/
     cliente.mensaje.seguimiento.fdSeguir = cliente.fd;
 
-    fprintf(stderr, "Escriba el identificador del usuario que desee seguir\n");
+    fprintf(stderr, AZUL_T "Escriba el identificador del usuario que desee seguir\n" RESET_COLOR);
 
     // se lee el id del cliente al que desea seguir
     scanf("%d", &cliente.mensaje.seguimiento.idReceptor);
@@ -318,7 +318,7 @@ void follow()
     write(fdGeneral, &cliente.mensaje, sizeof(cliente.mensaje));
 
     // se le avisa al cliente que su solicitud fue enviada al gestor
-    printf("Solicitud enviada\n");
+    printf(AMARILLO_T "Solicitud enviada\n" RESET_COLOR);
 }
 
 /**
@@ -333,13 +333,13 @@ void unfollow()
 
     cliente.mensaje.idEmisor = cliente.idCliente;
 
-    printf("Escriba el identificador del usuario que desee dejar de seguir\n");
+    printf(MAGENTA_T "Escriba el identificador del usuario que desee dejar de seguir\n" RESET_COLOR);
 
     scanf("%d", &cliente.mensaje.seguimiento.idReceptor);
 
     write(fdGeneral, &cliente.mensaje, sizeof(cliente.mensaje));
 
-    printf("Solicitud enviada\n");
+    printf(AMARILLO_T "Solicitud enviada\n" RESET_COLOR);
 }
 
 /**
@@ -351,13 +351,13 @@ void leerRespuestaFollow()
     // Si el exito es 1, quiere decir que el usuario emisor ya sigue al usuario receptor
     if (temporal.seguimiento.exito == 1)
     {
-        printf("Ahora estas siguiendo al usuario: %d \n", cliente.mensaje.seguimiento.idReceptor);
+        printf(VERDE_T "Ahora estas siguiendo al usuario: " RESET_COLOR AMARILLO_T "%d \n" RESET_COLOR, cliente.mensaje.seguimiento.idReceptor);
     }
 
     // Si el exito es igual a 2, quiere decir que el usuario emisor ya seguía al usuario receptor en el momento que realizó la solicitud
     else if (temporal.seguimiento.exito == 2)
     {
-        printf("Ya sigues a este usuario! \n");
+        printf(AMARILLO_T "Ya sigues a este usuario! \n" RESET_COLOR);
     }
 
     // Si el exito difiere de 1 o 2, quiere decir que la operación fue fallida
@@ -380,13 +380,13 @@ void leerRespuestaUnfollow()
     /* Si el exito del mensaje (temporal) es igual a 1, fue exitosa la solicitud de dejar de seguir*/
     if (temporal.seguimiento.exito == 1)
     {
-        printf("Dejaste de seguir al usuario: %d \n", cliente.mensaje.seguimiento.idReceptor);
+        printf(ROJO_T "Dejaste de seguir al usuario: " RESET_COLOR AMARILLO_T "%d \n" RESET_COLOR, cliente.mensaje.seguimiento.idReceptor);
     }
 
     /* Si el exito del mensaje (temporal) es igual a 2, ya no se seguía al usuario que se deseaba dejar de seguir*/
     else if (temporal.seguimiento.exito == 2)
     {
-        printf("No  sigues a este usuario! \n");
+        printf(ROJO_T "No  sigues a este usuario! \n" RESET_COLOR);
     }
     else
     // Si el exito difiere de 1 o 2, quiere decir que la operación fue fallida
@@ -411,12 +411,12 @@ void enviarTweet()
     // unlink(cliente.pipeNom);
     // mkfifo(cliente.pipeNom, S_IRUSR | S_IWUSR);
 
-    printf("Escriba su tweet a continuación:\n");
+    printf(AZUL_T "Escriba su tweet a continuación:\n" RESET_COLOR);
     fgets(cliente.mensaje.tweet.mensaje, 200, stdin);
 
     // se escribe el mensaje o se envía al pipe general
     write(fdGeneral, &cliente.mensaje, sizeof(cliente.mensaje));
-    printf("Tweet enviado\n");
+    printf(AMARILLO_T "Tweet enviado\n" RESET_COLOR);
 }
 
 /**
@@ -427,8 +427,8 @@ void leerTweet()
     system("clear");
     printf("\n");
     printf("===================================================================================== \n");
-    printf("Tweet de usuario: %d \n", temporal.tweet.idEmisor);
-    printf("Mensaje: \n");
+    printf(MAGENTA_T "Tweet de usuario: " RESET_COLOR AMARILLO_T "%d \n" RESET_COLOR, temporal.tweet.idEmisor);
+    printf(VERDE_T "Mensaje: \n" RESET_COLOR);
     printf("%s \n", temporal.tweet.mensaje);
     printf("\n");
     printf("===================================================================================== \n");
@@ -445,14 +445,14 @@ void verTweetsPorLeer()
     // si el conteo de tweets está en 0, se le avisa al cliente que no tiene nuevos tweets por leer
     if (contTweets == 0)
     {
-        printf("NO tiene nuevos tweets por leer \n");
+        printf(ROJO_T "NO tiene nuevos tweets por leer \n" RESET_COLOR);
     }
     // else?
     // si no , se recorre el arreglo de tweets por leer, mostrando el emisor del tweet y el mensaje correspondiente
     for (int i = 0; i < contTweets; i++)
     {
-        printf("Tweet de usuario: %d \n", cliente.tweetsPorLeer[i].idEmisor);
-        printf("Mensaje: \n");
+        printf(MAGENTA_T "Tweet de usuario: " RESET_COLOR AMARILLO_T "%d \n" RESET_COLOR, cliente.tweetsPorLeer[i].idEmisor);
+        printf(VERDE_T "Mensaje: \n" RESET_COLOR);
         printf("%s \n", cliente.tweetsPorLeer[i].mensaje);
     }
 }
@@ -543,5 +543,5 @@ void desconexion()
 
     write(fdGeneral, &cliente.mensaje, sizeof(cliente.mensaje));
 
-    printf("Solicitud de desconexion enviada\n");
+    printf(ROJO_T "Solicitud de desconexion enviada\n" RESET_COLOR);
 }

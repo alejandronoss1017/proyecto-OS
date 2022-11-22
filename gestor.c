@@ -342,7 +342,6 @@ void atenderConectarCliente()
     {
         sleep(2);
         gestor.clientes[contClientes].fd = open(temporal.conexion.pipeNom, O_WRONLY);
-        printf("El fd es: %d \n", gestor.clientes[contClientes].fd);
         if (gestor.clientes[contClientes].fd < 0)
         {
             printf("Error Number % d\n", errno);
@@ -399,11 +398,13 @@ void atenderConectarCliente()
             aux.conexion.idRetorno = idEncontrado;
             aux.conexion.fdRetorno = gestor.clientes[idEncontrado].fd;
             aux.cantTweetsPorVer = 0;
-            if(gestor.clientes[idEncontrado].cantTweetsPorLeer != 0){
-               for(int i = 0; i < gestor.clientes[idEncontrado].cantTweetsPorLeer; i++){
+            if (gestor.clientes[idEncontrado].cantTweetsPorLeer != 0)
+            {
+                for (int i = 0; i < gestor.clientes[idEncontrado].cantTweetsPorLeer; i++)
+                {
                     aux.tweetsPorVer[i] = gestor.clientes[idEncontrado].tweetsPorLeer[i];
                     aux.cantTweetsPorVer++;
-               }
+                }
             }
             write(gestor.clientes[idEncontrado].fd, &aux, sizeof(aux));
             printf("Respuesta enviada! \n");
@@ -440,7 +441,7 @@ void atenderSeguimientoCliente()
     bool emisorExiste = false;
     struct SMensaje aux;
 
-    // Mirar que no se excedan los limites de la matriz y que exita más de 1, si esto sucede, el seguimiento es fallido
+    // Mirar que no se excedan los limites de la matriz y que exista más de 1, si esto sucede, el seguimiento es fallido
     if (temporal.seguimiento.idReceptor > filas || temporal.seguimiento.idReceptor < 0)
     {
         aux.seguimiento.exito = 0;
@@ -479,7 +480,7 @@ void atenderSeguimientoCliente()
         }
     }
     aux.tipo = SEGUIMIENTO;
-    // se envia la respeusta de seguimiento al pipe especifico del cliente
+    // se envía la respuesta de seguimiento al pipe especifico del cliente
     write(gestor.clientes[temporal.idEmisor].fd, &aux, sizeof(aux));
     printf("Respuesta enviada! \n");
 }
@@ -522,17 +523,17 @@ void atenderTweetCliente()
 }
 
 /**
-Función que imprime las estadisticas a partir de un hilo
+Función que imprime las estadísticas a partir de un hilo
 */
 void *imprimirEstadisticas()
 {
     while (true)
     {
         printf("=================================================\n");
-        printf("Estadisticas Geniales \n");
-        printf("Numero de usuarios conectados: %d \n", numClientesConectado);
-        printf("Numero de tweets recibidos: %d \n", numTweetsRecibidos);
-        printf("Numero de tweets enviados: %d \n", numTweetsEnviados);
+        printf(AMARILLO_T "\t Estadísticas Geniales \n" RESET_COLOR);
+        printf(AZUL_T "Numero de usuarios conectados: " RESET_COLOR AMARILLO_T "%d \n" RESET_COLOR, numClientesConectado);
+        printf(AZUL_T "Numero de tweets recibidos: " RESET_COLOR AMARILLO_T "%d \n" RESET_COLOR, numTweetsRecibidos);
+        printf(AZUL_T "Numero de tweets enviados: " RESET_COLOR AMARILLO_T "%d \n" RESET_COLOR, numTweetsEnviados);
         sleep(gestor.tiempo);
     }
 }
